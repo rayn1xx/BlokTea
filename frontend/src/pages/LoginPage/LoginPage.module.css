@@ -56,22 +56,6 @@
   margin-top: 20px;
 }
 
-.success {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  margin-top: 28px;
-  padding: 16px;
-  border-radius: 16px;
-  background: var(--color-light-status-positive-muted, #e8f6ed);
-}
-
-.successIcon {
-  flex-shrink: 0;
-  color: var(--color-light-status-positive, #0cc44d);
-}
-
 @media (max-width: 600px) {
   .main {
     padding-top: 32px;

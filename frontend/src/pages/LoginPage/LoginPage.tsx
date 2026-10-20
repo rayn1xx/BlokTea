@@ -1,13 +1,14 @@
 import { FormEvent, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@alfalab/core-components/button';
 import { Input } from '@alfalab/core-components/input';
 import { PasswordInput } from '@alfalab/core-components/password-input';
 import { Typography } from '@alfalab/core-components/typography';
-import { CheckmarkCircleMIcon } from '@alfalab/icons-glyph/CheckmarkCircleMIcon';
 import { AlfaBankLogoMIcon } from '@alfalab/icons-logotype/AlfaBankLogoMIcon';
 
 import { login, saveToken } from '../../api/auth';
 import { ApiError } from '../../api/client';
+import { routes } from '../../routes';
 
 import styles from './LoginPage.module.css';
 
@@ -24,18 +25,16 @@ function validatePassword(password: string): string | null {
 }
 
 export function LoginPage() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [touched, setTouched] = useState({ email: false, password: false });
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   const emailError = validateEmail(email.trim());
   const passwordError = validatePassword(password);
-
-  const canSubmit = email.trim() !== '' && password !== '';
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -48,14 +47,13 @@ export function LoginPage() {
     try {
       const token = await login({ login: email.trim(), password });
       saveToken(token);
-      setSuccess(true);
+      navigate(routes.main, { replace: true });
     } catch (e) {
       setServerError(
         e instanceof ApiError && e.status === 401
           ? 'Неверный email или пароль'
           : 'Не удалось войти. Попробуйте позже',
       );
-    } finally {
       setLoading(false);
     }
   };
@@ -76,54 +74,47 @@ export function LoginPage() {
           Вход в кредитный кабинет
         </Typography.Text>
 
-        {success ? (
-          <div className={styles.success}>
-            <CheckmarkCircleMIcon className={styles.successIcon} />
-            <Typography.Text view='primary-medium'>Вы успешно вошли</Typography.Text>
-          </div>
-        ) : (
-          <form className={styles.form} onSubmit={handleSubmit} noValidate>
-            <Input
-              label='Email'
-              type='email'
-              size={64}
-              autoComplete='username'
-              value={email}
-              onChange={(_, { value }) => {
-                setEmail(value);
-                setServerError(null);
-              }}
-              onBlur={() => setTouched((t) => ({ ...t, email: true }))}
-              error={touched.email && emailError}
-              block
-            />
-            <PasswordInput
-              label='Пароль'
-              size={64}
-              autoComplete='current-password'
-              value={password}
-              onChange={(_, { value }) => {
-                setPassword(value);
-                setServerError(null);
-              }}
-              onBlur={() => setTouched((t) => ({ ...t, password: true }))}
-              passwordVisible={passwordVisible}
-              onPasswordVisibleChange={setPasswordVisible}
-              error={(touched.password && passwordError) || serverError}
-              block
-            />
-            <Button
-              type='submit'
-              view='primary'
-              size={64}
-              block
-              loading={loading}
-              className={styles.submit}
-            >
-              Войти
-            </Button>
-          </form>
-        )}
+        <form className={styles.form} onSubmit={handleSubmit} noValidate>
+          <Input
+            label='Email'
+            type='email'
+            size={64}
+            autoComplete='username'
+            value={email}
+            onChange={(_, { value }) => {
+              setEmail(value);
+              setServerError(null);
+            }}
+            onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+            error={touched.email && emailError}
+            block
+          />
+          <PasswordInput
+            label='Пароль'
+            size={64}
+            autoComplete='current-password'
+            value={password}
+            onChange={(_, { value }) => {
+              setPassword(value);
+              setServerError(null);
+            }}
+            onBlur={() => setTouched((t) => ({ ...t, password: true }))}
+            passwordVisible={passwordVisible}
+            onPasswordVisibleChange={setPasswordVisible}
+            error={(touched.password && passwordError) || serverError}
+            block
+          />
+          <Button
+            type='submit'
+            view='primary'
+            size={64}
+            block
+            loading={loading}
+            className={styles.submit}
+          >
+            Войти
+          </Button>
+        </form>
       </main>
     </div>
   );

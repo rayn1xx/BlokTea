@@ -14,7 +14,7 @@ export interface User {
   first_name: string;
   middle_name: string | null;
   birth_date: string | null;
-  role: UserRole;
+  role: UserRole | null;
   company: Company | null;
   accounts: AccountSummary[];
 }
