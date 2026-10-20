@@ -1,0 +1,18 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-family-system);
+  background: var(--color-light-base-bg-secondary, #f3f4f5);
+  color: var(--color-light-text-primary, #0b1f35);
+}
