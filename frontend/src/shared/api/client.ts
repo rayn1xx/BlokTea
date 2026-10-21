@@ -65,6 +65,16 @@ async function send(path: string, options: RequestOptions): Promise<Response> {
   }
 }
 
+const CODE_BY_STATUS: Record<number, ErrorCode> = {
+  400: 'BAD_REQUEST',
+  401: 'UNAUTHORIZED',
+  403: 'FORBIDDEN_ACTION',
+  404: 'NOT_FOUND',
+  409: 'INVALID_TRANSITION',
+  410: 'OFFER_EXPIRED',
+  422: 'VALIDATION_ERROR',
+};
+
 async function parse<T>(response: Response): Promise<T> {
   if (response.ok) {
     if (response.status === 204) return undefined as T;
@@ -72,16 +82,17 @@ async function parse<T>(response: Response): Promise<T> {
     return (text ? JSON.parse(text) : undefined) as T;
   }
 
-  let body: ApiErrorBody | null = null;
+  let body: (ApiErrorBody & { detail?: unknown }) | null = null;
   try {
-    body = (await response.json()) as ApiErrorBody;
+    body = (await response.json()) as ApiErrorBody & { detail?: unknown };
   } catch {
+    body = null;
   }
 
   throw new ApiError(
     response.status,
-    body?.error?.code ?? 'UNKNOWN',
-    body?.error?.message ?? response.statusText,
+    body?.error?.code ?? CODE_BY_STATUS[response.status] ?? 'UNKNOWN',
+    body?.error?.message ?? (typeof body?.detail === 'string' ? body.detail : response.statusText),
     body?.error?.details ?? {},
   );
 }
