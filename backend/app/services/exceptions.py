@@ -15,3 +15,7 @@ class InvalidRefreshTokenError(ServiceError):
 
 class NotAuthenticatedError(ServiceError):
     pass
+
+
+class AccessDeniedError(ServiceError):
+    pass

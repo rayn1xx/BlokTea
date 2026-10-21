@@ -1,0 +1,1428 @@
+{
+  "info": {
+    "name": "BlokTea API",
+    "description": "Тесты авторизации. Запускать целиком через Collection Runner: запросы идут сценарием и передают токены друг другу через переменные коллекции.\n\nRefresh-токен отправляется явным заголовком Cookie (банка cookie Postman отключена), чтобы можно было проверить повторное использование старого токена.\n\nПеред запуском: docker compose up -d db redis backend && docker compose exec backend python -m app.seed",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000/api/v1"
+    },
+    {
+      "key": "login",
+      "value": "owner@test.local"
+    },
+    {
+      "key": "password",
+      "value": "owner123"
+    },
+    {
+      "key": "login_norole",
+      "value": "norole@test.local"
+    },
+    {
+      "key": "password_norole",
+      "value": "norole123"
+    },
+    {
+      "key": "access_ttl",
+      "value": "900"
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "refresh_token",
+      "value": ""
+    },
+    {
+      "key": "prev_refresh_token",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// запоминаем выданные токены, чтобы следующие запросы могли их отправить",
+          "const setCookie = pm.response.headers.all()",
+          "  .filter((h) => h.key.toLowerCase() === 'set-cookie')",
+          "  .map((h) => h.value)",
+          "  .join('\\n');",
+          "const refresh = (setCookie.match(/refresh_token=([^;\\s]*)/) || [])[1];",
+          "",
+          "// удаление cookie приходит как refresh_token=\"\"; Max-Age=0 — такое значение не сохраняем",
+          "if (refresh && refresh !== '\"\"') {",
+          "  pm.collectionVariables.set('prev_refresh_token', pm.collectionVariables.get('refresh_token'));",
+          "  pm.collectionVariables.set('refresh_token', refresh);",
+          "}",
+          "",
+          "if (pm.response.code === 200) {",
+          "  try {",
+          "    const body = pm.response.json();",
+          "    if (body.access_token) pm.collectionVariables.set('access_token', body.access_token);",
+          "  } catch (e) {}",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Health",
+      "item": [
+        {
+          "name": "Сервис, БД и Redis доступны",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Все зависимости в порядке', () => {",
+                  "  pm.expect(pm.response.json()).to.eql({ status: 'ok', database: 'ok', redis: 'ok' });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Login",
+      "item": [
+        {
+          "name": "Пустое тело → 422",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422 Unprocessable Entity', () => pm.response.to.have.status(422));",
+                  "pm.test('Ошибки по полям login и password', () => {",
+                  "  const fields = pm.response.json().detail.map((e) => e.loc[e.loc.length - 1]);",
+                  "  pm.expect(fields).to.include.members(['login', 'password']);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Пустой пароль → 422",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422 Unprocessable Entity', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{login}}\",\n  \"password\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Неверный пароль → 401",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));",
+                  "pm.test('Одинаковый текст ошибки — не выдаём, существует ли логин', () => {",
+                  "  pm.expect(pm.response.json().detail).to.eql('invalid login or password');",
+                  "});",
+                  "pm.test('Cookie не выдаётся', () => {",
+                  "  pm.expect(pm.response.headers.has('Set-Cookie')).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{login}}\",\n  \"password\": \"wrong-password\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Неизвестный логин → 401",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));",
+                  "pm.test('Одинаковый текст ошибки — не выдаём, существует ли логин', () => {",
+                  "  pm.expect(pm.response.json().detail).to.eql('invalid login or password');",
+                  "});",
+                  "pm.test('Cookie не выдаётся', () => {",
+                  "  pm.expect(pm.response.headers.has('Set-Cookie')).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"nobody@test.local\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Логин в другом регистре и с пробелами → 200",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK — логин сравнивается без учёта регистра', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"  OWNER@Test.Local \",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Успешный вход",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Тело ответа — TokenResponse', () => {",
+                  "  pm.expect(body).to.have.all.keys('access_token', 'token_type', 'expires_in');",
+                  "  pm.expect(body.token_type).to.eql('Bearer');",
+                  "  pm.expect(body.expires_in).to.eql(Number(pm.collectionVariables.get('access_ttl')));",
+                  "});",
+                  "",
+                  "pm.test('access_token — JWT с sub, exp и type=access', () => {",
+                  "  const parts = body.access_token.split('.');",
+                  "  pm.expect(parts).to.have.lengthOf(3);",
+                  "  const payload = JSON.parse(require('atob')(parts[1].replace(/-/g, '+').replace(/_/g, '/')));",
+                  "  pm.expect(payload.type).to.eql('access');",
+                  "  pm.expect(payload.sub).to.match(/^[0-9a-f-]{36}$/);",
+                  "  pm.expect(payload.exp - payload.iat).to.eql(body.expires_in);",
+                  "});",
+                  "",
+                  "const setCookie = pm.response.headers.all()",
+                  "  .filter((h) => h.key.toLowerCase() === 'set-cookie')",
+                  "  .map((h) => h.value)",
+                  "  .join('\\n');",
+                  "",
+                  "pm.test('refresh_token выдан в защищённой cookie', () => {",
+                  "  pm.expect(setCookie).to.match(/refresh_token=[^;\\s\"]+/);",
+                  "  pm.expect(setCookie).to.include('HttpOnly');",
+                  "  pm.expect(setCookie).to.include('Path=/api/v1/auth');",
+                  "  pm.expect(setCookie.toLowerCase()).to.include('samesite=lax');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{login}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Refresh",
+      "item": [
+        {
+          "name": "Без cookie → 401",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));",
+                  "pm.test('detail: invalid refresh token', () => {",
+                  "  pm.expect(pm.response.json().detail).to.eql('invalid refresh token');",
+                  "});",
+                  "",
+                  "const setCookie = pm.response.headers.all()",
+                  "  .filter((h) => h.key.toLowerCase() === 'set-cookie')",
+                  "  .map((h) => h.value)",
+                  "  .join('\\n');",
+                  "",
+                  "pm.test('Cookie с refresh-токеном удаляется', () => {",
+                  "  pm.expect(setCookie).to.match(/refresh_token=\"?\"?;/);",
+                  "  pm.expect(setCookie).to.include('Max-Age=0');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/auth/refresh"
+          }
+        },
+        {
+          "name": "Несуществующий токен → 401",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));",
+                  "pm.test('detail: invalid refresh token', () => {",
+                  "  pm.expect(pm.response.json().detail).to.eql('invalid refresh token');",
+                  "});",
+                  "",
+                  "const setCookie = pm.response.headers.all()",
+                  "  .filter((h) => h.key.toLowerCase() === 'set-cookie')",
+                  "  .map((h) => h.value)",
+                  "  .join('\\n');",
+                  "",
+                  "pm.test('Cookie с refresh-токеном удаляется', () => {",
+                  "  pm.expect(setCookie).to.match(/refresh_token=\"?\"?;/);",
+                  "  pm.expect(setCookie).to.include('Max-Age=0');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "refresh_token=not-a-real-token"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/refresh"
+          }
+        },
+        {
+          "name": "Обновление токенов",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Тело ответа — TokenResponse', () => {",
+                  "  pm.expect(body).to.have.all.keys('access_token', 'token_type', 'expires_in');",
+                  "  pm.expect(body.token_type).to.eql('Bearer');",
+                  "  pm.expect(body.expires_in).to.eql(Number(pm.collectionVariables.get('access_ttl')));",
+                  "});",
+                  "",
+                  "pm.test('access_token — JWT с sub, exp и type=access', () => {",
+                  "  const parts = body.access_token.split('.');",
+                  "  pm.expect(parts).to.have.lengthOf(3);",
+                  "  const payload = JSON.parse(require('atob')(parts[1].replace(/-/g, '+').replace(/_/g, '/')));",
+                  "  pm.expect(payload.type).to.eql('access');",
+                  "  pm.expect(payload.sub).to.match(/^[0-9a-f-]{36}$/);",
+                  "  pm.expect(payload.exp - payload.iat).to.eql(body.expires_in);",
+                  "});",
+                  "",
+                  "const setCookie = pm.response.headers.all()",
+                  "  .filter((h) => h.key.toLowerCase() === 'set-cookie')",
+                  "  .map((h) => h.value)",
+                  "  .join('\\n');",
+                  "",
+                  "pm.test('refresh_token выдан в защищённой cookie', () => {",
+                  "  pm.expect(setCookie).to.match(/refresh_token=[^;\\s\"]+/);",
+                  "  pm.expect(setCookie).to.include('HttpOnly');",
+                  "  pm.expect(setCookie).to.include('Path=/api/v1/auth');",
+                  "  pm.expect(setCookie.toLowerCase()).to.include('samesite=lax');",
+                  "});",
+                  "",
+                  "pm.test('Refresh-токен ротирован — выдан новый', () => {",
+                  "  const current = pm.collectionVariables.get('refresh_token');",
+                  "  pm.expect(current).to.not.eql(pm.collectionVariables.get('prev_refresh_token'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "refresh_token={{refresh_token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/refresh"
+          }
+        },
+        {
+          "name": "Повторное обновление новым токеном",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK — новый токен работает', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "refresh_token={{refresh_token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/refresh"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Повторное использование токена",
+      "item": [
+        {
+          "name": "Уже использованный токен → 401",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));",
+                  "pm.test('detail: invalid refresh token', () => {",
+                  "  pm.expect(pm.response.json().detail).to.eql('invalid refresh token');",
+                  "});",
+                  "",
+                  "const setCookie = pm.response.headers.all()",
+                  "  .filter((h) => h.key.toLowerCase() === 'set-cookie')",
+                  "  .map((h) => h.value)",
+                  "  .join('\\n');",
+                  "",
+                  "pm.test('Cookie с refresh-токеном удаляется', () => {",
+                  "  pm.expect(setCookie).to.match(/refresh_token=\"?\"?;/);",
+                  "  pm.expect(setCookie).to.include('Max-Age=0');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "refresh_token={{prev_refresh_token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/refresh"
+          }
+        },
+        {
+          "name": "Актуальный токен тоже отозван → 401",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// после повторного использования закрываются все сессии пользователя",
+                  "",
+                  "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));",
+                  "pm.test('detail: invalid refresh token', () => {",
+                  "  pm.expect(pm.response.json().detail).to.eql('invalid refresh token');",
+                  "});",
+                  "",
+                  "const setCookie = pm.response.headers.all()",
+                  "  .filter((h) => h.key.toLowerCase() === 'set-cookie')",
+                  "  .map((h) => h.value)",
+                  "  .join('\\n');",
+                  "",
+                  "pm.test('Cookie с refresh-токеном удаляется', () => {",
+                  "  pm.expect(setCookie).to.match(/refresh_token=\"?\"?;/);",
+                  "  pm.expect(setCookie).to.include('Max-Age=0');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "refresh_token={{refresh_token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/refresh"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Logout",
+      "item": [
+        {
+          "name": "Вход",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{login}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Выход → 204",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204));",
+                  "",
+                  "const setCookie = pm.response.headers.all()",
+                  "  .filter((h) => h.key.toLowerCase() === 'set-cookie')",
+                  "  .map((h) => h.value)",
+                  "  .join('\\n');",
+                  "",
+                  "pm.test('Cookie с refresh-токеном удаляется', () => {",
+                  "  pm.expect(setCookie).to.include('Max-Age=0');",
+                  "  pm.expect(setCookie).to.include('Path=/api/v1/auth');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "refresh_token={{refresh_token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/logout"
+          }
+        },
+        {
+          "name": "Refresh после выхода → 401",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));",
+                  "pm.test('detail: invalid refresh token', () => {",
+                  "  pm.expect(pm.response.json().detail).to.eql('invalid refresh token');",
+                  "});",
+                  "",
+                  "const setCookie = pm.response.headers.all()",
+                  "  .filter((h) => h.key.toLowerCase() === 'set-cookie')",
+                  "  .map((h) => h.value)",
+                  "  .join('\\n');",
+                  "",
+                  "pm.test('Cookie с refresh-токеном удаляется', () => {",
+                  "  pm.expect(setCookie).to.match(/refresh_token=\"?\"?;/);",
+                  "  pm.expect(setCookie).to.include('Max-Age=0');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "refresh_token={{refresh_token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/refresh"
+          }
+        },
+        {
+          "name": "Повторный выход тем же токеном → 204",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204));",
+                  "",
+                  "const setCookie = pm.response.headers.all()",
+                  "  .filter((h) => h.key.toLowerCase() === 'set-cookie')",
+                  "  .map((h) => h.value)",
+                  "  .join('\\n');",
+                  "",
+                  "pm.test('Cookie с refresh-токеном удаляется', () => {",
+                  "  pm.expect(setCookie).to.include('Max-Age=0');",
+                  "  pm.expect(setCookie).to.include('Path=/api/v1/auth');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "refresh_token={{refresh_token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/logout"
+          }
+        },
+        {
+          "name": "Выход без cookie → 204",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204));",
+                  "",
+                  "const setCookie = pm.response.headers.all()",
+                  "  .filter((h) => h.key.toLowerCase() === 'set-cookie')",
+                  "  .map((h) => h.value)",
+                  "  .join('\\n');",
+                  "",
+                  "pm.test('Cookie с refresh-токеном удаляется', () => {",
+                  "  pm.expect(setCookie).to.include('Max-Age=0');",
+                  "  pm.expect(setCookie).to.include('Path=/api/v1/auth');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/auth/logout"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Пользователь без роли",
+      "item": [
+        {
+          "name": "Вход без роли → 200",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK — роль на вход не влияет, доступ решает фронт по /home', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{login_norole}}\",\n  \"password\": \"{{password_norole}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Выход",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204));",
+                  "",
+                  "const setCookie = pm.response.headers.all()",
+                  "  .filter((h) => h.key.toLowerCase() === 'set-cookie')",
+                  "  .map((h) => h.value)",
+                  "  .join('\\n');",
+                  "",
+                  "pm.test('Cookie с refresh-токеном удаляется', () => {",
+                  "  pm.expect(setCookie).to.include('Max-Age=0');",
+                  "  pm.expect(setCookie).to.include('Path=/api/v1/auth');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "refresh_token={{refresh_token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/logout"
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Home",
+      "item": [
+        {
+          "name": "Без токена → 401",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));",
+                  "pm.test('WWW-Authenticate: Bearer', () => {",
+                  "  pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/home",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Вход владельца компании",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{login}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Главная страница",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('User: поля по контракту', () => {",
+                  "  pm.expect(body).to.have.all.keys(",
+                  "    'id', 'first_name', 'middle_name', 'birth_date', 'role', 'company', 'accounts');",
+                  "  pm.expect(body.role).to.eql('owner');",
+                  "});",
+                  "",
+                  "pm.test('Company: поля по контракту', () => {",
+                  "  pm.expect(body.company).to.have.all.keys(",
+                  "    'id', 'legal_form', 'inn', 'ogrn', 'kpp', 'full_name', 'short_name', 'registration_date',",
+                  "    'okved_main', 'okved_additional', 'legal_address', 'registry_status', 'msp_category',",
+                  "    'employees_count', 'verification', 'created_at', 'updated_at');",
+                  "  pm.expect(body.company.verification).to.have.all.keys('source', 'verified_at');",
+                  "  pm.expect(body.company.okved_additional).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Реквизиты соответствуют форме собственности', () => {",
+                  "  const c = body.company;",
+                  "  if (c.legal_form === 'OOO') {",
+                  "    pm.expect(c.inn).to.match(/^\\d{10}$/);",
+                  "    pm.expect(c.ogrn).to.match(/^\\d{13}$/);",
+                  "    pm.expect(c.kpp).to.match(/^\\d{4}[0-9A-Z]{2}\\d{3}$/);",
+                  "  } else {",
+                  "    pm.expect(c.inn).to.match(/^\\d{12}$/);",
+                  "    pm.expect(c.ogrn).to.match(/^\\d{15}$/);",
+                  "    pm.expect(c.kpp).to.be.null;",
+                  "  }",
+                  "});",
+                  "",
+                  "pm.test('AccountSummary: поля и типы', () => {",
+                  "  pm.expect(body.accounts).to.be.an('array').that.is.not.empty;",
+                  "  body.accounts.forEach((a) => {",
+                  "    pm.expect(a).to.have.all.keys('id', 'owner_type', 'type', 'currency', 'name', 'is_primary', 'current_money');",
+                  "    pm.expect(['company', 'user']).to.include(a.owner_type);",
+                  "    pm.expect(['settlement', 'current', 'deposit', 'credit']).to.include(a.type);",
+                  "    pm.expect(a.currency).to.match(/^[A-Z]{3}$/);",
+                  "    pm.expect(Number.isInteger(a.current_money)).to.be.true;",
+                  "  });",
+                  "});",
+                  "",
+                  "pm.test('Основные счета идут первыми', () => {",
+                  "  const flags = body.accounts.map((a) => a.is_primary);",
+                  "  pm.expect(flags).to.eql([...flags].sort((x, y) => y - x));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/home"
+          }
+        },
+        {
+          "name": "Вход без роли",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{login_norole}}\",\n  \"password\": \"{{password_norole}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Главная без роли — без данных компании",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('role и company — null', () => {",
+                  "  pm.expect(body.role).to.be.null;",
+                  "  pm.expect(body.company).to.be.null;",
+                  "});",
+                  "",
+                  "pm.test('Только личные счета', () => {",
+                  "  body.accounts.forEach((a) => pm.expect(a.owner_type).to.eql('user'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/home"
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Applications",
+      "item": [
+        {
+          "name": "Без токена → 401",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/applications",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Без роли → 403",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// access_token остался от входа без роли в папке 7",
+                  "pm.test('403 Forbidden', () => pm.response.to.have.status(403));",
+                  "pm.test('detail: no access', () => pm.expect(pm.response.json().detail).to.eql('no access'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/applications"
+          }
+        },
+        {
+          "name": "Вход владельца компании",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{login}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Список по умолчанию",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Ответ: items, page, page_size, total', () => {",
+                  "  pm.expect(body).to.have.all.keys('items', 'page', 'page_size', 'total');",
+                  "});",
+                  "",
+                  "pm.test('Заявки: поля по контракту', () => {",
+                  "  body.items.forEach((a) => {",
+                  "    pm.expect(a).to.have.all.keys(",
+                  "      'id', 'number', 'product', 'purpose', 'requested_amount', 'requested_term_months',",
+                  "      'approved_amount', 'approved_term_months', 'status', 'required_action', 'created_at', 'updated_at');",
+                  "    pm.expect(a.product).to.have.all.keys('code', 'name');",
+                  "    pm.expect(a.requested_amount).to.have.all.keys('value', 'currency');",
+                  "    pm.expect(Number.isInteger(a.requested_amount.value)).to.be.true;",
+                  "  });",
+                  "});",
+                  "",
+                  "pm.test('Одобренные условия есть только после решения банка', () => {",
+                  "  const decided = ['approved', 'counter_offer', 'signing', 'issued'];",
+                  "  body.items.forEach((a) => {",
+                  "    if (decided.includes(a.status)) {",
+                  "      pm.expect(a.approved_amount).to.have.all.keys('value', 'currency');",
+                  "      pm.expect(a.approved_term_months).to.be.a('number');",
+                  "    } else {",
+                  "      pm.expect(a.approved_amount).to.be.null;",
+                  "      pm.expect(a.approved_term_months).to.be.null;",
+                  "    }",
+                  "  });",
+                  "});",
+                  "",
+                  "pm.test('Пагинация по умолчанию: страница 1, по 10', () => {",
+                  "  pm.expect(body.page).to.eql(1);",
+                  "  pm.expect(body.page_size).to.eql(10);",
+                  "  pm.expect(body.items.length).to.be.at.most(10);",
+                  "  pm.expect(body.total).to.be.at.least(body.items.length);",
+                  "});",
+                  "",
+                  "pm.test('Сначала новые', () => {",
+                  "  const dates = body.items.map((a) => Date.parse(a.created_at));",
+                  "  pm.expect(dates).to.eql([...dates].sort((x, y) => y - x));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/applications"
+          }
+        },
+        {
+          "name": "Вкладка «Ждут вас»",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Ответ: items, page, page_size, total', () => {",
+                  "  pm.expect(body).to.have.all.keys('items', 'page', 'page_size', 'total');",
+                  "});",
+                  "",
+                  "pm.test('Заявки: поля по контракту', () => {",
+                  "  body.items.forEach((a) => {",
+                  "    pm.expect(a).to.have.all.keys(",
+                  "      'id', 'number', 'product', 'purpose', 'requested_amount', 'requested_term_months',",
+                  "      'approved_amount', 'approved_term_months', 'status', 'required_action', 'created_at', 'updated_at');",
+                  "    pm.expect(a.product).to.have.all.keys('code', 'name');",
+                  "    pm.expect(a.requested_amount).to.have.all.keys('value', 'currency');",
+                  "    pm.expect(Number.isInteger(a.requested_amount.value)).to.be.true;",
+                  "  });",
+                  "});",
+                  "",
+                  "pm.test('Одобренные условия есть только после решения банка', () => {",
+                  "  const decided = ['approved', 'counter_offer', 'signing', 'issued'];",
+                  "  body.items.forEach((a) => {",
+                  "    if (decided.includes(a.status)) {",
+                  "      pm.expect(a.approved_amount).to.have.all.keys('value', 'currency');",
+                  "      pm.expect(a.approved_term_months).to.be.a('number');",
+                  "    } else {",
+                  "      pm.expect(a.approved_amount).to.be.null;",
+                  "      pm.expect(a.approved_term_months).to.be.null;",
+                  "    }",
+                  "  });",
+                  "});",
+                  "",
+                  "pm.test('Только статусы из фильтра', () => {",
+                  "  const allowed = ['draft', 'info_requested', 'approved', 'counter_offer', 'signing'];",
+                  "  body.items.forEach((a) => pm.expect(allowed).to.include(a.status));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/applications?status=draft&status=info_requested&status=approved&status=counter_offer&status=signing"
+          }
+        },
+        {
+          "name": "Сортировка по сумме, страница 2",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Ответ: items, page, page_size, total', () => {",
+                  "  pm.expect(body).to.have.all.keys('items', 'page', 'page_size', 'total');",
+                  "});",
+                  "",
+                  "pm.test('Заявки: поля по контракту', () => {",
+                  "  body.items.forEach((a) => {",
+                  "    pm.expect(a).to.have.all.keys(",
+                  "      'id', 'number', 'product', 'purpose', 'requested_amount', 'requested_term_months',",
+                  "      'approved_amount', 'approved_term_months', 'status', 'required_action', 'created_at', 'updated_at');",
+                  "    pm.expect(a.product).to.have.all.keys('code', 'name');",
+                  "    pm.expect(a.requested_amount).to.have.all.keys('value', 'currency');",
+                  "    pm.expect(Number.isInteger(a.requested_amount.value)).to.be.true;",
+                  "  });",
+                  "});",
+                  "",
+                  "pm.test('Одобренные условия есть только после решения банка', () => {",
+                  "  const decided = ['approved', 'counter_offer', 'signing', 'issued'];",
+                  "  body.items.forEach((a) => {",
+                  "    if (decided.includes(a.status)) {",
+                  "      pm.expect(a.approved_amount).to.have.all.keys('value', 'currency');",
+                  "      pm.expect(a.approved_term_months).to.be.a('number');",
+                  "    } else {",
+                  "      pm.expect(a.approved_amount).to.be.null;",
+                  "      pm.expect(a.approved_term_months).to.be.null;",
+                  "    }",
+                  "  });",
+                  "});",
+                  "",
+                  "pm.test('page и page_size из запроса', () => {",
+                  "  pm.expect(body.page).to.eql(2);",
+                  "  pm.expect(body.page_size).to.eql(3);",
+                  "  pm.expect(body.items.length).to.be.at.most(3);",
+                  "});",
+                  "",
+                  "pm.test('Сумма по убыванию', () => {",
+                  "  const amounts = body.items.map((a) => a.requested_amount.value);",
+                  "  pm.expect(amounts).to.eql([...amounts].sort((x, y) => y - x));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/applications?sort=-requested_amount&page=2&page_size=3"
+          }
+        },
+        {
+          "name": "Неизвестный статус → 422",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422 Unprocessable Entity', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/applications?status=unknown"
+          }
+        },
+        {
+          "name": "page_size больше 100 → 422",
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422 Unprocessable Entity', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/applications?page_size=101"
+          }
+        }
+      ]
+    }
+  ]
+}

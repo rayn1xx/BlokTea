@@ -50,8 +50,16 @@ def test_downgrade_to_base_and_upgrade_back(database: None) -> None:
 
     command.upgrade(config, "head")
     tables, enums = schema_state()
-    assert "users" in tables
-    assert "user_role" in enums
+    assert {"users", "companies", "accounts", "credit_products", "applications"} <= tables
+    assert enums == {
+        "user_role",
+        "legal_form",
+        "registry_status",
+        "msp_category",
+        "account_owner_type",
+        "account_type",
+        "application_status",
+    }
 
 
 def test_models_match_migrations(database: None) -> None:

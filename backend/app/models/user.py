@@ -2,10 +2,10 @@ import uuid
 from datetime import date
 from enum import StrEnum
 
-from sqlalchemy import Boolean, Date, Enum, String
+from sqlalchemy import Boolean, Date, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import Base, TimestampMixin
+from app.db.base import Base, TimestampMixin, pg_enum
 
 
 class UserRole(StrEnum):
@@ -30,6 +30,7 @@ class User(TimestampMixin, Base):
     middle_name: Mapped[str | None] = mapped_column(String(100))
     birth_date: Mapped[date | None] = mapped_column(Date)
     # null — пользователь вошёл, но доступа к кабинету нет (фронт показывает «Нет доступа»)
-    role: Mapped[UserRole | None] = mapped_column(
-        Enum(UserRole, name="user_role", values_callable=lambda e: [m.value for m in e])
+    role: Mapped[UserRole | None] = mapped_column(pg_enum(UserRole, "user_role"))
+    company_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("companies.id", ondelete="SET NULL"), index=True
     )

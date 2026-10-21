@@ -12,11 +12,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.security import PasswordHasher, TokenFactory
 from app.db.redis import get_redis
-from app.db.repositories import RefreshSessionRepository, UserRepository
+from app.db.repositories import (
+    AccountRepository,
+    ApplicationRepository,
+    CompanyRepository,
+    RefreshSessionRepository,
+    UserRepository,
+)
 from app.db.session import get_session
 from app.models import User
+from app.services.applications import ApplicationService
 from app.services.auth import AuthService
 from app.services.exceptions import NotAuthenticatedError
+from app.services.home import HomeService
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 RedisDep = Annotated[Redis, Depends(get_redis)]
@@ -47,6 +55,18 @@ def get_refresh_session_repository(redis: RedisDep) -> RefreshSessionRepository:
     return RefreshSessionRepository(redis)
 
 
+def get_company_repository(session: SessionDep) -> CompanyRepository:
+    return CompanyRepository(session)
+
+
+def get_account_repository(session: SessionDep) -> AccountRepository:
+    return AccountRepository(session)
+
+
+def get_application_repository(session: SessionDep) -> ApplicationRepository:
+    return ApplicationRepository(session)
+
+
 def get_auth_service(
     session: SessionDep,
     users: Annotated[UserRepository, Depends(get_user_repository)],
@@ -58,6 +78,25 @@ def get_auth_service(
 
 
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
+
+
+def get_home_service(
+    companies: Annotated[CompanyRepository, Depends(get_company_repository)],
+    accounts: Annotated[AccountRepository, Depends(get_account_repository)],
+) -> HomeService:
+    return HomeService(companies, accounts)
+
+
+HomeServiceDep = Annotated[HomeService, Depends(get_home_service)]
+
+
+def get_application_service(
+    applications: Annotated[ApplicationRepository, Depends(get_application_repository)],
+) -> ApplicationService:
+    return ApplicationService(applications)
+
+
+ApplicationServiceDep = Annotated[ApplicationService, Depends(get_application_service)]
 
 bearer_scheme = HTTPBearer(auto_error=False)
 

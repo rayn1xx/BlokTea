@@ -1,6 +1,8 @@
 from datetime import datetime
+from enum import StrEnum
 
 from sqlalchemy import DateTime, MetaData, func
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 # единые имена ограничений — чтобы alembic autogenerate давал стабильные миграции
@@ -22,3 +24,8 @@ class TimestampMixin:
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+def pg_enum(enum_cls: type[StrEnum], name: str) -> SAEnum:
+    # в БД храним значения ("owner"), а не имена членов enum ("OWNER") — как в API
+    return SAEnum(enum_cls, name=name, values_callable=lambda e: [m.value for m in e])

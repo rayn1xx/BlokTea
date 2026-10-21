@@ -4,8 +4,7 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from redis.asyncio import Redis
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.db.redis import get_redis
 from app.db.session import get_session
@@ -15,11 +14,8 @@ ClientFactory = Callable[[FastAPI], AsyncClient]
 
 
 @pytest.fixture(autouse=True)
-async def clean_storage(engine: AsyncEngine, redis: Redis) -> AsyncIterator[None]:
-    async with engine.begin() as conn:
-        await conn.execute(text("TRUNCATE users CASCADE"))
-    await redis.flushdb()
-    yield
+async def _clean(clean_storage: None) -> None:
+    pass
 
 
 @pytest.fixture

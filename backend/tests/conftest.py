@@ -12,15 +12,18 @@ import pytest  # noqa: E402
 from alembic import command  # noqa: E402
 from redis.asyncio import Redis  # noqa: E402
 from redis.exceptions import ConnectionError as RedisConnectionError  # noqa: E402
+from sqlalchemy import text  # noqa: E402
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker  # noqa: E402
 
 from app.core.config import settings  # noqa: E402
-from app.models import User  # noqa: E402
+from app.models import Base, User  # noqa: E402
 from tests.db_utils import alembic_config, create_test_engine, recreate_database  # noqa: E402
 from tests.factories import make_user  # noqa: E402
 
 TESTS_DIR = Path(__file__).parent
 CATEGORIES = {"unit", "integration", "api", "migrations"}
+# справочники заполняет миграция — между тестами их не чистим
+REFERENCE_TABLES = {"credit_products"}
 
 
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
@@ -77,6 +80,15 @@ async def redis() -> AsyncIterator[Redis]:
         )
     yield client
     await client.aclose()
+
+
+@pytest.fixture
+async def clean_storage(engine: AsyncEngine, redis: Redis) -> None:
+    """Пустые таблицы и Redis; integration и api подключают её автоматически в своих conftest."""
+    tables = ", ".join(t.name for t in Base.metadata.sorted_tables if t.name not in REFERENCE_TABLES)
+    async with engine.begin() as conn:
+        await conn.execute(text(f"TRUNCATE {tables} CASCADE"))
+    await redis.flushdb()
 
 
 @pytest.fixture

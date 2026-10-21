@@ -4,7 +4,7 @@ import uuid
 from datetime import timedelta
 
 from app.db.repositories import ConsumeResult, ConsumeStatus
-from app.models import User
+from app.models import Account, Application, Company, User
 
 
 class FakeSession:
@@ -54,3 +54,38 @@ class FakeRefreshSessionRepository:
     async def revoke_all_for_user(self, user_id: uuid.UUID) -> None:
         self.revoked_users.append(user_id)
         self.sessions = {h: s for h, s in self.sessions.items() if s["user_id"] != user_id}
+
+
+class FakeCompanyRepository:
+    def __init__(self, *companies: Company) -> None:
+        self.companies = {company.id: company for company in companies}
+        self.requested: list[uuid.UUID] = []
+
+    async def get_by_id(self, company_id: uuid.UUID) -> Company | None:
+        self.requested.append(company_id)
+        return self.companies.get(company_id)
+
+
+class FakeAccountRepository:
+    def __init__(self, *accounts: Account) -> None:
+        self.accounts = list(accounts)
+        self.calls: list[tuple[uuid.UUID, uuid.UUID | None]] = []
+
+    async def list_for_owner(self, user_id: uuid.UUID, company_id: uuid.UUID | None) -> list[Account]:
+        self.calls.append((user_id, company_id))
+        return [
+            a
+            for a in self.accounts
+            if a.user_id == user_id or (company_id is not None and a.company_id == company_id)
+        ]
+
+
+class FakeApplicationRepository:
+    def __init__(self, *applications: Application, total: int | None = None) -> None:
+        self.applications = list(applications)
+        self.total = len(applications) if total is None else total
+        self.calls: list[dict] = []
+
+    async def list_for_company(self, company_id: uuid.UUID, **params) -> tuple[list[Application], int]:
+        self.calls.append({"company_id": company_id, **params})
+        return self.applications, self.total
