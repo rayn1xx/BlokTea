@@ -1,0 +1,132 @@
+.stepper {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 3px solid var(--color-light-bg-tertiary, #e7e8ea);
+  color: var(--color-light-text-secondary, rgba(4, 4, 19, 0.55));
+}
+
+.stepDone {
+  border-bottom-color: var(--color-light-graphic-positive, #0cc44d);
+}
+
+.stepCurrent {
+  border-bottom-color: var(--color-light-accent-primary, #ef3124);
+  color: var(--color-light-text-primary, rgba(3, 3, 6, 0.88));
+}
+
+.stepNum {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-light-bg-primary, #fff);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.stepCurrent .stepNum {
+  background: var(--color-light-graphic-primary, #212124);
+  color: #fff;
+}
+
+.stepDone .stepNum {
+  background: var(--color-light-graphic-positive, #0cc44d);
+  color: #fff;
+}
+
+.stepTitle {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.freeFlow {
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--color-light-bg-positive-muted, #dff8e5);
+}
+
+.chart {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 6px;
+  height: 160px;
+  align-items: end;
+}
+
+.bar {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+}
+
+.barFill {
+  width: 100%;
+  min-height: 4px;
+  border-radius: 6px 6px 2px 2px;
+  background: var(--color-light-graphic-link, #2288fa);
+  opacity: 0.85;
+}
+
+.barLow {
+  background: var(--color-light-graphic-attention, #fa9313);
+}
+
+.barLabel {
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--color-light-text-secondary, rgba(4, 4, 19, 0.55));
+}
+
+.altCard {
+  padding: 16px;
+  border: 1px solid var(--color-light-bg-tertiary, #e7e8ea);
+  border-radius: 16px;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.altCard:hover {
+  border-color: var(--color-light-graphic-primary, #212124);
+}
+
+@media (max-width: 767px) {
+  .stepTitle {
+    display: none;
+  }
+  .stepper {
+    gap: 4px;
+  }
+  .footer > * {
+    width: 100%;
+  }
+}

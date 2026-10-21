@@ -44,7 +44,15 @@ services:
         condition: service_healthy
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        USE_MOCKS: ${USE_MOCKS:-true}
+        DEMO_MODE: ${DEMO_MODE:-true}
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      - backend
 
 volumes:
   db-data:

@@ -1,0 +1,153 @@
+.layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.steps {
+  position: sticky;
+  top: 88px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 20px;
+  background: var(--color-light-bg-primary, #fff);
+}
+
+.stepButton {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.stepButton:hover {
+  background: var(--color-light-bg-secondary, #f2f3f5);
+}
+
+.stepActive {
+  background: var(--color-light-bg-secondary, #f2f3f5);
+  font-weight: 700;
+}
+
+.stepNum {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-light-bg-tertiary, #e7e8ea);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.stepNum svg {
+  width: 24px;
+  height: 24px;
+}
+
+.stepDone .stepNum {
+  background: none;
+  color: var(--color-light-graphic-positive, #0cc44d);
+}
+
+.stepActive .stepNum {
+  background: var(--color-light-graphic-primary, #212124);
+  color: #fff;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.reqs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.req {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 8px;
+  border-top: 1px solid var(--color-light-bg-tertiary, #e7e8ea);
+  border-radius: 12px;
+}
+
+.req:first-child {
+  border-top: 0;
+}
+
+.reqMissing {
+  background: var(--color-light-bg-negative-muted, #ffebeb);
+}
+
+.reqMark {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--color-light-bg-tertiary, #e7e8ea);
+  box-sizing: border-box;
+}
+
+.reqDone {
+  border: 0;
+  color: var(--color-light-graphic-positive, #0cc44d);
+}
+
+.reqDone svg {
+  width: 24px;
+  height: 24px;
+}
+
+.reqNotNeeded {
+  border-style: dashed;
+}
+
+@media (max-width: 1023px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .steps {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+  }
+  .stepButton {
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .req {
+    flex-wrap: wrap;
+  }
+  .footer > * {
+    width: 100%;
+  }
+}

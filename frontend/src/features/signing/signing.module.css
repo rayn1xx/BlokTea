@@ -1,0 +1,53 @@
+.signers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.signer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--color-light-bg-tertiary, #e7e8ea);
+}
+
+.signer:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.doc {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--color-light-bg-tertiary, #e7e8ea);
+  border-radius: 14px;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.doc:hover {
+  border-color: var(--color-light-graphic-primary, #212124);
+}
+
+.issued {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  border-radius: 20px;
+  background: var(--color-light-bg-positive-muted, #dff8e5);
+}
+
+.issuedIcon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  color: var(--color-light-graphic-positive, #0cc44d);
+}

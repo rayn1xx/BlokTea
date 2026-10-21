@@ -1,0 +1,14 @@
+.card {
+  display: flex;
+  flex-direction: column;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-light-bg-secondary, #f2f3f5);
+}
