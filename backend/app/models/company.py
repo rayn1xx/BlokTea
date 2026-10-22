@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from enum import StrEnum
 
-from sqlalchemy import ARRAY, CheckConstraint, Date, DateTime, Integer, String, Text, text
+from sqlalchemy import ARRAY, CheckConstraint, Date, DateTime, ForeignKey, Integer, String, Text, text
 from sqlalchemy.orm import Mapped, composite, mapped_column
 
 from app.db.base import Base, TimestampMixin, pg_enum
@@ -23,6 +23,7 @@ class RegistryStatus(StrEnum):
 class MspCategory(StrEnum):
     MICRO = "micro"
     SMALL = "small"
+    MEDIUM = "medium"
 
 
 @dataclass
@@ -57,9 +58,10 @@ class Company(TimestampMixin, Base):
     full_name: Mapped[str] = mapped_column(String(500))
     short_name: Mapped[str] = mapped_column(String(255))
     registration_date: Mapped[date] = mapped_column(Date)
-    okved_main: Mapped[str] = mapped_column(String(8))
+    # код и название: "25.62 Обработка металлических изделий механическая"
+    okved_main: Mapped[str] = mapped_column(String(255))
     okved_additional: Mapped[list[str]] = mapped_column(
-        ARRAY(String(8)), default=list, server_default=text("'{}'")
+        ARRAY(String(255)), default=list, server_default=text("'{}'")
     )
     legal_address: Mapped[str] = mapped_column(Text)
     registry_status: Mapped[RegistryStatus] = mapped_column(
@@ -67,6 +69,8 @@ class Company(TimestampMixin, Base):
     )
     msp_category: Mapped[MspCategory | None] = mapped_column(pg_enum(MspCategory, "msp_category"))
     employees_count: Mapped[int | None] = mapped_column(Integer)
+    # подписывает кредитный договор по правилам подписи ООО
+    director_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
 
     verification: Mapped[CompanyVerification] = composite(
         mapped_column("verification_source", String(100)),

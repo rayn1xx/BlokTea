@@ -1,4 +1,4 @@
-"""In-memory замены репозиториев и сессии — AuthService тестируется без БД и Redis."""
+"""In-memory замены репозиториев и сессии: AuthService тестируется без БД и Redis."""
 
 import uuid
 from datetime import timedelta

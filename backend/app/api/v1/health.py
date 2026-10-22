@@ -1,21 +1,45 @@
-from fastapi import APIRouter, HTTPException, status
+import httpx
+from fastapi import APIRouter
 from sqlalchemy import text
 
-from app.api.deps import RedisDep, SessionDep
+from app.api.deps import ExternalDep, SessionDep
+from app.core.config import settings
+from app.schemas.contracts import Health
 
 router = APIRouter(tags=["health"])
 
 
+async def llm_state() -> str:
+    if not settings.llm_enabled:
+        return "stub"
+    try:
+        async with httpx.AsyncClient(base_url=settings.ollama_base_url, timeout=2, trust_env=False) as client:
+            response = await client.get("/api/tags")
+        return "up" if response.status_code == 200 else "down"
+    except httpx.HTTPError:
+        return "down"
+
+
 @router.get("/health")
-async def health(session: SessionDep, redis: RedisDep) -> dict[str, str]:
+async def health(session: SessionDep, external: ExternalDep) -> Health:
     try:
         await session.execute(text("SELECT 1"))
-    except Exception as e:
-        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "database unavailable") from e
+        db = "ok"
+    except Exception:  # noqa: BLE001 - отдаём состояние, а не 500
+        db = "down"
 
-    try:
-        await redis.ping()
-    except Exception as e:
-        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "redis unavailable") from e
-
-    return {"status": "ok", "database": "ok", "redis": "ok"}
+    systems = (await external.health()).get("systems", {})
+    mocks = {name: "ok" if systems.get(name) == "ok" else "down" for name in ("alfa_lk", "registry", "bki", "fns")}
+    llm = await llm_state()
+    degraded = db == "down" or "down" in mocks.values() or llm == "down"
+    return Health(
+        status="degraded" if degraded else "ok",
+        db=db,
+        llm=llm,
+        llm_models={
+            "text": settings.llm_model_text if llm != "stub" else None,
+            "vision": settings.llm_model_vision if llm != "stub" else None,
+        },
+        mocks=mocks,
+        demo_mode=settings.demo_mode,
+    )

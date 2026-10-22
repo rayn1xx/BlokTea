@@ -36,7 +36,7 @@ def models_vs_database_diff() -> list:
 
 
 def test_single_head() -> None:
-    # две головы — значит, две ветки миграций не слили
+    # две головы: значит, две ветки миграций не слили
     assert len(ScriptDirectory.from_config(alembic_config()).get_heads()) == 1
 
 
@@ -50,9 +50,16 @@ def test_downgrade_to_base_and_upgrade_back(database: None) -> None:
 
     command.upgrade(config, "head")
     tables, enums = schema_state()
-    assert {"users", "companies", "accounts", "credit_products", "applications"} <= tables
+    assert {
+        "users", "companies", "accounts", "credit_products", "applications", "members", "company_profiles",
+        "finance_overrides", "signing_rules", "matching_sessions", "application_events", "consents", "info_requests",
+        "decisions", "signing_sessions", "challenges", "documents", "tasks", "loans", "notifications", "feed_items",
+        "scoring_results", "check_results", "audit_log", "settings",
+    } <= tables
     assert enums == {
         "user_role",
+        "bank_role",
+        "member_status",
         "legal_form",
         "registry_status",
         "msp_category",
@@ -63,5 +70,5 @@ def test_downgrade_to_base_and_upgrade_back(database: None) -> None:
 
 
 def test_models_match_migrations(database: None) -> None:
-    # непустой diff — модель поменяли, а миграцию не сгенерировали
+    # непустой diff: модель поменяли, а миграцию не сгенерировали
     assert models_vs_database_diff() == []

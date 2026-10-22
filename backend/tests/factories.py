@@ -4,6 +4,7 @@ from datetime import UTC, date, datetime
 from typing import Any
 
 from app.core.security import PasswordHasher
+from app.domain.catalog import DEFAULT_PERMISSIONS
 from app.models import (
     DECIDED_STATUSES,
     Account,
@@ -14,6 +15,8 @@ from app.models import (
     Company,
     CompanyVerification,
     LegalForm,
+    Member,
+    MemberStatus,
     MspCategory,
     RegistryStatus,
     User,
@@ -34,19 +37,19 @@ def make_user(*, password: str = DEFAULT_PASSWORD, **overrides: Any) -> User:
     data: dict[str, Any] = {
         "id": uuid.uuid4(),
         "login": f"user-{uuid.uuid4().hex[:8]}@test.local",
+        "last_name": "Тестов",
         "first_name": "Тест",
         "middle_name": None,
         "birth_date": None,
-        "role": UserRole.OWNER,
+        "bank_role": None,
         "is_active": True,
-        "company_id": None,
     }
     data.update(overrides)
     return User(**data, password_hash=_hasher.hash(password))
 
 
 def make_company(**overrides: Any) -> Company:
-    """ООО с валидными реквизитами; для ИП передай legal_form=LegalForm.IP — реквизиты подстроятся."""
+    """ООО с валидными реквизитами; для ИП передай legal_form=LegalForm.IP: реквизиты подстроятся."""
     is_ip = overrides.get("legal_form") == LegalForm.IP
     data: dict[str, Any] = {
         "id": uuid.uuid4(),
@@ -69,8 +72,27 @@ def make_company(**overrides: Any) -> Company:
     return Company(**data)
 
 
+def make_member(*, company: Company, user: User | None, role: UserRole = UserRole.OWNER, **overrides: Any) -> Member:
+    """Сотрудник компании; права по умолчанию для роли (К.5)."""
+    data: dict[str, Any] = {
+        "id": uuid.uuid4(),
+        "company_id": company.id,
+        "user_id": user.id if user else None,
+        "last_name": user.last_name if user else "Новый",
+        "first_name": user.first_name if user else "Сотрудник",
+        "middle_name": None,
+        "role": role,
+        "permissions": list(DEFAULT_PERMISSIONS[role.value]),
+        "status": MemberStatus.ACTIVE,
+        "has_alfa_business_access": True,
+        "login": user.login if user else None,
+    }
+    data.update(overrides)
+    return Member(**data)
+
+
 def make_account(*, company: Company | None = None, user: User | None = None, **overrides: Any) -> Account:
-    """Счёт компании или пользователя — передай ровно одного владельца."""
+    """Счёт компании или пользователя: передай ровно одного владельца."""
     if (company is None) == (user is None):
         raise ValueError("нужен ровно один владелец: company или user")
 
@@ -96,12 +118,15 @@ def make_application(*, company: Company, **overrides: Any) -> Application:
         "number": f"КЗ-2026-{digits(6)}",
         "company_id": company.id,
         "product_code": "working_capital",
+        "purpose_code": "working_capital",
         "purpose": "Пополнение оборотных средств",
         "currency": "RUB",
         "requested_amount": 100_000_000,
         "requested_term_months": 12,
+        "rate_percent": 15.0,
         "status": ApplicationStatus.DRAFT,
-        "required_action": None,
+        "version": 1,
+        "form_data": {},
     }
     data.update(overrides)
 

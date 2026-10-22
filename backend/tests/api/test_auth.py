@@ -29,7 +29,7 @@ async def login(client: AsyncClient, user: User, password: str = DEFAULT_PASSWOR
 
 
 async def refresh_with(client: AsyncClient, token: str) -> Response:
-    # явная cookie вместо банки клиента — чтобы отправить именно этот токен
+    # явная cookie вместо банки клиента: чтобы отправить именно этот токен
     client.cookies.clear()
     return await client.post(REFRESH, headers={"Cookie": f"{COOKIE}={token}"})
 
@@ -75,8 +75,9 @@ class TestLogin:
         response = await client.post(LOGIN, json=body)
 
         assert response.status_code == 401
-        # одинаковый ответ — не раскрываем, существует ли логин
-        assert response.json() == {"detail": "invalid login or password"}
+        # одинаковый ответ: не раскрываем, существует ли логин
+        assert response.json()["error"]["code"] == "UNAUTHORIZED"
+        assert response.json()["error"]["message"] == "Неверный логин или пароль"
         assert "set-cookie" not in response.headers
 
     async def test_inactive_user(self, client: AsyncClient, db_session: AsyncSession) -> None:
@@ -87,7 +88,7 @@ class TestLogin:
         assert (await login(client, blocked)).status_code == 401
 
     async def test_user_without_role_can_login(self, client: AsyncClient, db_session: AsyncSession) -> None:
-        no_role = make_user(role=None)
+        no_role = make_user()
         db_session.add(no_role)
         await db_session.commit()
 
@@ -123,7 +124,7 @@ class TestRefresh:
         response = await client.post(REFRESH)
 
         assert response.status_code == 401
-        assert response.json() == {"detail": "invalid refresh token"}
+        assert response.json()["error"]["code"] == "UNAUTHORIZED"
         assert_cookie_deleted(response)
 
     async def test_unknown_token(self, client: AsyncClient) -> None:

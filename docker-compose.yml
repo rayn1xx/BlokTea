@@ -20,7 +20,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    # AOF — refresh-сессии переживают перезапуск контейнера
+    # AOF: refresh-сессии переживают перезапуск контейнера
     command: ["redis-server", "--appendonly", "yes"]
     ports:
       - "${REDIS_PORT:-6379}:6379"
@@ -28,6 +28,20 @@ services:
       - redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  # моки внешних систем: Альфа-Бизнес, ЕГРЮЛ/ЕГРИП, реестр МСП, БКИ, ФНС (данные синтетические)
+  mocks:
+    build: ./backend
+    environment:
+      MOCKS_DOWN: ${MOCKS_DOWN:-}
+    command: ["uvicorn", "mocks.main:app", "--host", "0.0.0.0", "--port", "8100"]
+    ports:
+      - "8100:8100"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/health')"]
       interval: 3s
       timeout: 3s
       retries: 10
@@ -47,14 +61,27 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET:-local-dev-secret-change-me}
+      MOCKS_BASE_URL: http://mocks:8100
+      UPLOAD_DIR: /app/data/uploads
+      OLLAMA_BASE_URL: http://ollama:11434
+    # миграции, затем демо-данные (если SEED_DEMO=true и базы ещё нет)
     command: ["sh", "-c", "alembic upgrade head && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
     ports:
       - "8000:8000"
+    volumes:
+      - uploads:/app/data/uploads
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mocks:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   frontend:
     build:
@@ -70,3 +97,4 @@ services:
 volumes:
   db-data:
   redis-data:
+  uploads:

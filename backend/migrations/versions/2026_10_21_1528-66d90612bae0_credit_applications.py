@@ -18,7 +18,7 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
-# справочник кредитных продуктов — названия совпадают с фронтовыми
+# справочник кредитных продуктов: названия совпадают с фронтовыми
 CREDIT_PRODUCTS = [
     {"code": "working_capital", "name": "Кредит на пополнение оборотных средств"},
     {"code": "investment", "name": "Кредит на оборудование"},

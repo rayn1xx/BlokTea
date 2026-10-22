@@ -58,7 +58,7 @@ class AuthService:
         if result.status is ConsumeStatus.MISSING:
             raise InvalidRefreshTokenError
 
-        # повторное использование токена — вероятная кража: закрываем все сессии пользователя
+        # повторное использование токена: вероятная кража: закрываем все сессии пользователя
         if result.status is ConsumeStatus.REUSED:
             await self._refresh_sessions.revoke_all_for_user(result.user_id)
             raise InvalidRefreshTokenError

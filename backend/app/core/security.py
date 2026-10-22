@@ -30,7 +30,7 @@ class PasswordHasher:
 
 
 class TokenFactory:
-    """Выпускает access-токены (JWT) и refresh-токены (случайная строка, в БД — её хеш)."""
+    """Выпускает access-токены (JWT) и refresh-токены (случайная строка, в БД: её хеш)."""
 
     def __init__(self, secret: str, algorithm: str, access_ttl: timedelta, refresh_ttl: timedelta) -> None:
         self._secret = secret

@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.db.repositories import UserRepository
-from app.models import User, UserRole
+from app.models import BankRole, User
 from tests.factories import make_user
 
 
@@ -21,15 +21,15 @@ async def test_add_and_get_by_id(
     user = await repo.add(make_user(login="a@test.local", middle_name="Петрович"))
     await db_session.commit()
 
-    # читаем через новую сессию — иначе вернётся объект из identity map, а не из БД
+    # читаем через новую сессию: иначе вернётся объект из identity map, а не из БД
     async with session_factory() as other:
         loaded = await UserRepository(other).get_by_id(user.id)
 
     assert loaded is not None
-    assert (loaded.login, loaded.middle_name, loaded.role, loaded.is_active) == (
+    assert (loaded.login, loaded.middle_name, loaded.bank_role, loaded.is_active) == (
         "a@test.local",
         "Петрович",
-        UserRole.OWNER,
+        None,
         True,
     )
     assert loaded.created_at is not None
@@ -52,22 +52,14 @@ async def test_login_is_unique(repo: UserRepository, user: User) -> None:
         await repo.add(make_user(login=user.login))
 
 
-async def test_role_stored_as_lowercase_enum_value(repo: UserRepository, db_session: AsyncSession) -> None:
-    user = await repo.add(make_user(role=UserRole.FINANCE_EMPLOYEE))
+async def test_bank_role_stored_as_lowercase_enum_value(repo: UserRepository, db_session: AsyncSession) -> None:
+    user = await repo.add(make_user(bank_role=BankRole.BANK_ADMIN))
 
-    stored = await db_session.scalar(text("SELECT role::text FROM users WHERE id = :id"), {"id": user.id})
+    stored = await db_session.scalar(text("SELECT bank_role::text FROM users WHERE id = :id"), {"id": user.id})
 
-    assert stored == "finance_employee"
+    assert stored == "bank_admin"
 
 
-async def test_role_can_be_null(
-    repo: UserRepository, db_session: AsyncSession, session_factory: async_sessionmaker[AsyncSession]
-) -> None:
-    user = await repo.add(make_user(role=None))
-    await db_session.commit()
-
-    async with session_factory() as other:
-        loaded = await UserRepository(other).get_by_id(user.id)
-
-    assert loaded is not None
-    assert loaded.role is None
+async def test_short_name() -> None:
+    assert make_user(last_name="Смирнов", first_name="Пётр", middle_name="Иванович").short_name == "Смирнов П. И."
+    assert make_user(last_name="Гусев", first_name="Антон", middle_name=None).short_name == "Гусев А."

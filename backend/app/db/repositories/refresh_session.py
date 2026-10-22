@@ -10,7 +10,7 @@ from redis.asyncio import Redis
 SESSION_KEY = "auth:refresh:{}"
 USER_SESSIONS_KEY = "auth:user_refresh:{}"
 
-# проверка и пометка «использован» одной атомарной операцией — два параллельных refresh не пройдут оба
+# проверка и пометка «использован» одной атомарной операцией: два параллельных refresh не пройдут оба
 CONSUME_SCRIPT = """
 local user_id = redis.call('HGET', KEYS[1], 'user_id')
 if not user_id then
@@ -27,7 +27,7 @@ return {'ok', user_id}
 class ConsumeStatus(StrEnum):
     OK = "ok"
     MISSING = "missing"  # токена нет или истёк
-    REUSED = "reused"  # токен уже использовали — вероятная кража
+    REUSED = "reused"  # токен уже использовали: вероятная кража
 
 
 @dataclass(frozen=True)

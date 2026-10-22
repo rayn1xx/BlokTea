@@ -24,7 +24,7 @@ async def company(db_session: AsyncSession) -> Company:
 
 @pytest.fixture
 async def member(db_session: AsyncSession, company: Company) -> User:
-    user = make_user(company_id=company.id)
+    user = make_user()
     db_session.add(user)
     await db_session.flush()
     return user

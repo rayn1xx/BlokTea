@@ -2,12 +2,13 @@ import uuid
 from typing import Any
 
 import pytest
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.db.repositories import CompanyRepository, UserRepository
-from app.models import Company, CompanyVerification, LegalForm, MspCategory, RegistryStatus
-from tests.factories import digits, make_company, make_user
+from app.models import Company, CompanyVerification, LegalForm, Member, MspCategory, RegistryStatus
+from tests.factories import digits, make_company, make_member, make_user
 
 
 @pytest.fixture
@@ -16,7 +17,7 @@ def repo(db_session: AsyncSession) -> CompanyRepository:
 
 
 async def reload(session_factory: async_sessionmaker[AsyncSession], company_id: uuid.UUID) -> Company | None:
-    # новая сессия — иначе вернётся объект из identity map, а не из БД
+    # новая сессия: иначе вернётся объект из identity map, а не из БД
     async with session_factory() as other:
         return await CompanyRepository(other).get_by_id(company_id)
 
@@ -43,7 +44,7 @@ async def test_roundtrip_keeps_all_fields(
 async def test_defaults(
     repo: CompanyRepository, db_session: AsyncSession, session_factory: async_sessionmaker[AsyncSession]
 ) -> None:
-    # только обязательные поля — остальное должно заполниться значениями по умолчанию
+    # только обязательные поля: остальное должно заполниться значениями по умолчанию
     template = make_company()
     company = Company(
         legal_form=template.legal_form,
@@ -126,11 +127,12 @@ async def test_kpp_with_latin_letters_allowed(repo: CompanyRepository) -> None:
     await repo.add(make_company(kpp="7701AB001"))
 
 
-async def test_deleting_company_unlinks_users(
+async def test_deleting_company_removes_members_but_keeps_users(
     repo: CompanyRepository, db_session: AsyncSession, session_factory: async_sessionmaker[AsyncSession]
 ) -> None:
     company = await repo.add(make_company())
-    user = await UserRepository(db_session).add(make_user(company_id=company.id))
+    user = await UserRepository(db_session).add(make_user())
+    db_session.add(make_member(company=company, user=user))
     await db_session.commit()
 
     await db_session.delete(company)
@@ -138,5 +140,6 @@ async def test_deleting_company_unlinks_users(
 
     async with session_factory() as other:
         loaded = await UserRepository(other).get_by_id(user.id)
+        members = await other.scalar(select(func.count()).select_from(Member).where(Member.user_id == user.id))
     assert loaded is not None
-    assert loaded.company_id is None
+    assert members == 0

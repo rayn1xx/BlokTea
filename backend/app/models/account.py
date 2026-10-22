@@ -8,7 +8,7 @@ from app.db.base import Base, TimestampMixin, pg_enum
 
 
 class AccountOwnerType(StrEnum):
-    # порядок значит: в PG enum сортируется по объявлению — счета компании идут раньше личных
+    # порядок значит: в PG enum сортируется по объявлению: счета компании идут раньше личных
     COMPANY = "company"
     USER = "user"
 
