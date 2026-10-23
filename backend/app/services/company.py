@@ -7,6 +7,7 @@ from app.domain import readiness as readiness_domain
 from app.domain.finance import annuity_payment
 from app.integrations.external import ExternalSystems
 from app.models import FinanceOverride
+from app.services import ai
 from app.services.common import ClientContext, iso, now, thresholds
 from app.services.company_data import CompanyData
 from app.services.events import Actor, audit
@@ -165,4 +166,5 @@ class CompanyService:
     async def readiness(self, ctx: ClientContext, amount: int | None, term: int | None, rate: float) -> dict:
         facts, _ = await self.data(ctx).facts()
         payment = annuity_payment(amount, term, rate) if amount and term else 0
-        return readiness_domain.readiness(facts, await thresholds(self.session), payment, iso(now()))
+        full = readiness_domain.readiness(facts, await thresholds(self.session), payment, iso(now()))
+        return await ai.readiness_texts(full)

@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     demo_mode: bool = True
     seed_demo: bool = True
 
-    # ИИ пока на шаблонах-заглушках: при false все тексты text_source='template'
+    # ИИ через Ollama (раздел 8 ТЗ): при false или сбое модели тексты из шаблонов, text_source='template'
     llm_enabled: bool = False
     ollama_base_url: str = "http://localhost:11434"
     llm_model_text: str = "qwen3.5:9b"

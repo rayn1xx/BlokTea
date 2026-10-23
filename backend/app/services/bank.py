@@ -26,6 +26,7 @@ from app.models import (
     Setting,
     User,
 )
+from app.services import ai
 from app.services.application_view import detail, load_extras, summary
 from app.services.common import THRESHOLDS_KEY, People, iso, now, parse_dt, thresholds
 from app.services.company_data import CompanyData
@@ -236,7 +237,7 @@ class BankService:
         audit(self.session, actor=bank_actor(user), action="Взял в работу", entity="application", entity_id=app.id)
 
     async def ai_summary(self, user: User, app: Application) -> None:
-        """И7 на шаблоне: резюме из фактов, решение принимает аналитик."""
+        """И7: резюме из фактов от модели или из шаблона; решение принимает аналитик."""
         await self.ensure_scoring(app)
         company = await self.session.get(Company, app.company_id)
         result = await latest_scoring(self.session, app.id)
@@ -258,14 +259,10 @@ class BankService:
             risks.append("Нет отчётности за 2025 год" if situational else "Не хватает обязательных документов")
             to_check.append("Запросить недостающие документы")
         to_check.append("Сверить обороты по выписке с данными заявки")
-        open_issues = await self.session.scalar(
-            select(func.count())
-            .select_from(Document)
-            .where(Document.company_id == company.id, Document.status == "rejected")
-        )
-        if open_issues:
+        docs = list(await self.session.scalars(select(Document).where(Document.company_id == company.id)))
+        if any(d.status == "rejected" for d in docs):
             to_check.append("Посмотреть отклонённые документы")
-        app.ai_summary = {
+        template = {
             "text": texts.analyst_summary(
                 company_name=company.short_name,
                 registration_year=company.registration_date.year,
@@ -283,6 +280,34 @@ class BankService:
             "text_source": texts.TEMPLATE,
             "generated_at": iso(now()),
         }
+        lows = low_months(facts.months)
+        # в модель только факты для решения: без ФИО, паспортов и счетов (8.1 п.6)
+        facts_for_llm = {
+            "product": PRODUCTS_BY_CODE[app.product_code]["name"],
+            "requested": {"amount_rub": ai.rubles(app.requested_amount), "term_months": app.requested_term_months},
+            "finance": {
+                "inflow_avg_rub": ai.rubles(facts.monthly_inflow_avg or 0),
+                "free_cash_flow_rub": ai.rubles(facts.free_cash_flow or 0),
+                "seasonality": texts.seasonality_text(lows) if lows else None,
+            },
+            "load": {"percent": load or 0, "threshold": t.load_threshold_percent},
+            "score": result.total if result else 0,
+            "outcome": result.payload["outcome"] if result else "manual_review",
+            "checks": [{"source": c["source"], "status": c["status"], "summary": c["summary"]} for c in check_items],
+            "documents": [
+                {
+                    "title": d.title,
+                    "issues": [i["text"] for i in (d.analysis or {}).get("issues", []) if i["severity"] != "info"]
+                    + ([d.status_reason] if d.status == "rejected" and d.status_reason else []),
+                }
+                for d in docs
+                if d.status == "rejected" or any(i["severity"] != "info" for i in (d.analysis or {}).get("issues", []))
+            ],
+            "client_warning_accepted": app.client_warning_accepted,
+            # название компании убираем: у ИП это ФИО
+            "facts_text": template["text"].replace(company.short_name, "Компания"),
+        }
+        app.ai_summary = await ai.analyst_summary(facts_for_llm, template)
         audit(self.session, actor=bank_actor(user), action="Обновил ИИ-резюме", entity="application", entity_id=app.id)
 
     async def rerun_checks(self, user: User, app: Application) -> None:
@@ -344,6 +369,10 @@ class BankService:
             raise validation("Проверьте поля", errors)
 
     async def build_decision(self, app: Application, body: dict) -> dict:
+        """Decision по телу решения аналитика; тексты для клиента от модели (И5, И8) или из шаблонов."""
+        return await ai.decision_texts(await self.decision_template(app, body))
+
+    async def decision_template(self, app: Application, body: dict) -> dict:
         result = await latest_scoring(self.session, app.id)
         t = await thresholds(self.session)
         scoring_payload = result.payload if result else None

@@ -46,6 +46,35 @@ services:
       timeout: 3s
       retries: 10
 
+  # LLM (раздел 8 ТЗ), только с профилем: docker compose --profile llm up
+  # без профиля бэкенд работает на шаблонах-заглушках, /health отдаёт llm: stub
+  ollama:
+    image: ollama/ollama:0.40.9
+    profiles: ["llm"]
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # init: скачивает модели из LLM_MODEL_TEXT и LLM_MODEL_VISION и завершается
+  ollama-init:
+    image: ollama/ollama:0.40.9
+    profiles: ["llm"]
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      LLM_MODEL_TEXT: ${LLM_MODEL_TEXT:-qwen3.5:9b}
+      LLM_MODEL_VISION: ${LLM_MODEL_VISION:-}
+    entrypoint: ["sh", "-c", "ollama pull \"$$LLM_MODEL_TEXT\" && if [ -n \"$$LLM_MODEL_VISION\" ]; then ollama pull \"$$LLM_MODEL_VISION\"; fi"]
+    restart: "no"
+    depends_on:
+      ollama:
+        condition: service_healthy
+
   backend:
     build: ./backend
     env_file:
@@ -95,6 +124,7 @@ services:
       - backend
 
 volumes:
+  ollama-models:
   db-data:
   redis-data:
   uploads:

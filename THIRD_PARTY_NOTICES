@@ -19,12 +19,22 @@ THIRD PARTY NOTICES
 Языковые модели
 ===============
 
-ИИ-задачи пока работают на шаблонах-заглушках, модели не загружаются. Перед подключением Ollama
-указать здесь модели и их лицензии (раздел 8.3 ТЗ).
+Модели запускаются локально через Ollama (профиль llm в docker-compose), открытые веса, без облачных тегов.
+Без профиля и при LLM_ENABLED=false модели не загружаются, все тексты из шаблонов-заглушек.
+
+- Ollama, образ ollama/ollama:0.40.9 (MIT)
+- Qwen3.5 9B, тег qwen3.5:9b, Q4_K_M (Apache-2.0, по данным `ollama show qwen3.5:9b`): тексты (И1, И3-И8)
+  и сканы (И2, модель мультимодальная)
+- Опционально при мощной GPU: gpt-oss:20b, gpt-oss:120b (Apache-2.0); лицензию сверить при подключении
+
+Распознавание текста
+====================
+
+- Tesseract OCR 5 с языками rus и eng (Apache-2.0): запасной путь для сканов без мультимодальной модели
 
 Библиотеки бэкенда
 ==================
 
 FastAPI (MIT), Starlette (BSD-3-Clause), Pydantic (MIT), pydantic-settings (MIT), SQLAlchemy (MIT),
 asyncpg (Apache-2.0), Alembic (MIT), Uvicorn (BSD-3-Clause), PyJWT (MIT), argon2-cffi (MIT),
-redis-py (MIT), httpx (BSD-3-Clause), python-multipart (Apache-2.0), PyYAML (MIT).
+redis-py (MIT), httpx (BSD-3-Clause), python-multipart (Apache-2.0), PyYAML (MIT), pypdf (BSD-3-Clause).

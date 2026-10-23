@@ -11,6 +11,7 @@ from app.domain.catalog import PRODUCTS, PRODUCTS_BY_CODE, PURPOSE_TITLES
 from app.domain.finance import annuity_payment, payment_schedule
 from app.integrations.external import ExternalSystems, optional
 from app.models import MatchingSession
+from app.services import ai
 from app.services.applications import ApplicationService
 from app.services.common import ClientContext, iso, now, thresholds, today
 from app.services.company_data import CompanyData
@@ -188,6 +189,7 @@ class MatchingService:
             result = matching_domain.recommend(s.need, s.extra, facts, t, readiness_items, summary["stale"]["text"])
         except matching_domain.NoProductsError as e:
             raise validation("Нет подходящих продуктов для вашей компании", {"need": "Измените параметры"}) from e
+        result = await ai.recommendation_texts(result, t.load_threshold_percent, t.load_target_percent)
         full = readiness_domain.readiness(facts, t, result["requested"]["load"]["new_payment"]["value"], iso(now()))
         response = {"session_id": str(s.id), **result, "readiness": readiness_domain.short(full)}
         s.last_recommendation = response

@@ -4,6 +4,7 @@ from sqlalchemy import text
 
 from app.api.deps import ExternalDep, SessionDep
 from app.core.config import settings
+from app.integrations import llm
 from app.schemas.contracts import Health
 
 router = APIRouter(tags=["health"])
@@ -13,11 +14,17 @@ async def llm_state() -> str:
     if not settings.llm_enabled:
         return "stub"
     try:
-        async with httpx.AsyncClient(base_url=settings.ollama_base_url, timeout=2, trust_env=False) as client:
+        async with httpx.AsyncClient(
+            base_url=settings.ollama_base_url, timeout=2, transport=llm.client.transport, trust_env=False
+        ) as client:
             response = await client.get("/api/tags")
-        return "up" if response.status_code == 200 else "down"
-    except httpx.HTTPError:
+        if response.status_code != 200:
+            return "down"
+        # Ollama жива, но текстовая модель ещё не скачана: все задачи уйдут в заглушки
+        models = {m.get("name") for m in response.json().get("models", [])}
+    except (httpx.HTTPError, ValueError):
         return "down"
+    return "up" if settings.llm_model_text in models else "down"
 
 
 @router.get("/health")

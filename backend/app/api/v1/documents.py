@@ -4,11 +4,11 @@ import uuid
 from typing import Annotated, Literal
 from urllib.parse import quote
 
-from fastapi import APIRouter, File, Form, Response, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, File, Form, Response, UploadFile, status
 
-from app.api.deps import ClientDep, CurrentUserDep, DocumentServiceDep, SessionDep
+from app.api.deps import ClientDep, CurrentUserDep, DocumentServiceDep, SessionDep, SessionFactoryDep
 from app.schemas.contracts import DocumentRef, DocumentType, FromLkRequest, LegalForm, MissingDocuments
-from app.services.documents import document_types
+from app.services.documents import analyze_document_job, document_types
 
 router = APIRouter(tags=["documents"])
 
@@ -44,6 +44,8 @@ async def upload(
     ctx: ClientDep,
     service: DocumentServiceDep,
     session: SessionDep,
+    background: BackgroundTasks,
+    session_factory: SessionFactoryDep,
     file: Annotated[UploadFile, File()],
     scope: Annotated[str | None, Form()] = None,
     document_type: Annotated[str | None, Form()] = None,
@@ -61,6 +63,9 @@ async def upload(
         info_request_id=info_request_id,
     )
     await session.commit()
+    # анализ моделью (И1-И3) идёт после ответа: клиент сразу видит документ в статусе analyzing
+    if result["status"] == "analyzing":
+        background.add_task(analyze_document_job, session_factory, uuid.UUID(result["id"]))
     return result
 
 
@@ -96,10 +101,14 @@ async def new_version(
     ctx: ClientDep,
     service: DocumentServiceDep,
     session: SessionDep,
+    background: BackgroundTasks,
+    session_factory: SessionFactoryDep,
     file: Annotated[UploadFile, File()],
 ) -> DocumentRef:
     result = await service.new_version(ctx, doc_id, await file.read(MAX_READ), file.filename)
     await session.commit()
+    if result["status"] == "analyzing":
+        background.add_task(analyze_document_job, session_factory, doc_id)
     return result
 
 

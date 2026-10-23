@@ -22,6 +22,7 @@ from app.models import (
     InfoRequest,
     ScoringResult,
 )
+from app.services import ai
 from app.services.application_view import product_ref, requested_payment, requirements
 from app.services.common import People, iso, money, now, thresholds, today
 from app.services.company_data import CompanyData
@@ -372,12 +373,12 @@ async def auto_review(session: AsyncSession, external: ExternalSystems, app_id: 
         return
 
     if result["stop_factors"] or result["outcome"] == "rejected":
-        payload = decision_payload(app, "rejected", "auto", result, load, t)
+        payload = await ai.decision_texts(decision_payload(app, "rejected", "auto", result, load, t))
         await apply_decision(session, app, payload, SYSTEM)
         return
 
     if result["total"] >= t.approve_min and "warning" not in statuses:
-        payload = decision_payload(app, "approved", "auto", result, load, t)
+        payload = await ai.decision_texts(decision_payload(app, "approved", "auto", result, load, t))
         await apply_decision(session, app, payload, SYSTEM)
 
 

@@ -130,7 +130,7 @@ def level(readiness_items: list[dict]) -> str:
 
 
 def readiness(facts: CompanyFacts, t: Thresholds, new_payment: int, calculated_at: str) -> dict:
-    """Readiness из К.7. Тексты пока из шаблонов (задача И6)."""
+    """Readiness из К.7. Тексты из шаблонов, модель переформулирует их в services/ai.py (И6)."""
     readiness_items = items(facts, t, new_payment)
     lvl = level(readiness_items)
     ok_count = sum(1 for i in readiness_items if i["status"] == "ok")

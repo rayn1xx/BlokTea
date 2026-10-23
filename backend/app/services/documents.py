@@ -1,15 +1,17 @@
 """Документы (К.12). Тип файла проверяется по сигнатуре, имя файла пользователя в путь не попадает.
 
-Анализ документов (И1-И3) пока на заглушке: без LLM тип выбирает пользователь, проверка ручная.
+Анализ документов (И1-И3): с LLM идёт в фоне после загрузки (status analyzing), без LLM или при сбое
+модели заглушка: тип выбирает пользователь, проверка ручная.
 """
 
+import logging
 import re
 import uuid
 from datetime import date
 from pathlib import Path
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.config import settings
 from app.core.errors import forbidden, not_found, validation
@@ -18,9 +20,12 @@ from app.domain.catalog import DOCUMENT_TYPES, DOCUMENT_TYPES_BY_CODE, FROM_LK_K
 from app.domain.finance import format_rub, payment_schedule
 from app.integrations.external import ExternalSystems, IntegrationUnavailable
 from app.models import Application, Company, Document, InfoRequest
+from app.services import ai
 from app.services.application_view import SIGN_DOC_TITLES
 from app.services.common import ClientContext, People, iso, now, today
 from app.services.company_data import CompanyData, effective_document_status
+
+log = logging.getLogger(__name__)
 
 CONTENT_TYPES = {
     "pdf": "application/pdf",
@@ -60,8 +65,11 @@ def safe_file_name(name: str | None) -> str:
     return re.sub(r"[\x00-\x1f/\\]", "_", base)[:200] or "document"
 
 
-def stub_analysis(doc: Document, requested_types: list[str] | None) -> dict:
-    """Анализ без LLM: только проверки, которые делает код; остальное проверит сотрудник."""
+def stub_analysis(doc: Document, requested_types: list[str] | None, status: str = "unavailable") -> dict:
+    """Анализ без LLM: только проверки, которые делает код; остальное проверит сотрудник.
+
+    unavailable: LLM выключена; failed: модель не смогла прочитать документ.
+    """
     checks = []
     issues = [{"severity": "info", "text": texts.MANUAL_CHECK_TEXT}]
     if requested_types:
@@ -76,7 +84,7 @@ def stub_analysis(doc: Document, requested_types: list[str] | None) -> dict:
         if not passed:
             issues.insert(0, {"severity": "warning", "text": texts.ISSUE_TEXTS["type_match"]})
     return {
-        "status": "unavailable",
+        "status": status,
         "detected_type": None,
         "detected_type_confidence": None,
         "extracted_fields": [],
@@ -86,6 +94,72 @@ def stub_analysis(doc: Document, requested_types: list[str] | None) -> dict:
         "text_source": texts.TEMPLATE,
         "analyzed_at": iso(now()),
     }
+
+
+def pending_analysis() -> dict:
+    return {
+        "status": "pending",
+        "detected_type": None,
+        "detected_type_confidence": None,
+        "extracted_fields": [],
+        "checks": [],
+        "issues": [],
+        "model": None,
+        "text_source": texts.TEMPLATE,
+        "analyzed_at": None,
+    }
+
+
+def file_format(doc: Document) -> str | None:
+    return next((fmt for fmt, ct in CONTENT_TYPES.items() if ct == doc.content_type), None)
+
+
+async def run_analysis(session: AsyncSession, doc: Document) -> None:
+    """И1-И3 для документа; при сбое модели заглушка. Тип 'other' заменяется уверенно определённым."""
+    request = await session.get(InfoRequest, doc.info_request_id) if doc.info_request_id else None
+    requested = request.document_types if request else None
+    company = await session.get(Company, doc.company_id)
+    content = ai.read_file(doc.file_path)
+    fmt = file_format(doc)
+    analysis = None
+    if content is not None and fmt is not None:
+        analysis = await ai.analyze_document(
+            content=content,
+            fmt=fmt,
+            doc_type=doc.document_type,
+            requested_types=requested,
+            company_inn=company.inn,
+            today=today(),
+            analyzed_at=iso(now()),
+        )
+    if analysis is None:
+        status = "failed" if settings.llm_enabled and doc.document_type not in ai.NO_LLM_TYPES else "unavailable"
+        doc.analysis = stub_analysis(doc, requested, status)
+    else:
+        detected, confidence = analysis["detected_type"], analysis["detected_type_confidence"] or 0
+        if doc.document_type == "other" and detected and confidence >= ai.MIN_TYPE_CONFIDENCE:
+            doc.document_type = detected
+            doc.title = document_title(detected)
+        doc.analysis = analysis
+    if doc.status == "analyzing":
+        doc.status = "uploaded"
+
+
+async def analyze_document_job(session_factory: async_sessionmaker[AsyncSession], doc_id: uuid.UUID) -> None:
+    """Фоновый анализ после загрузки: своя сессия, как у автопроверок заявки."""
+    try:
+        async with session_factory() as session:
+            doc = await session.get(Document, doc_id, with_for_update=True)
+            if doc is None or doc.status != "analyzing":
+                return
+            await run_analysis(session, doc)
+            await session.commit()
+    except Exception:  # noqa: BLE001 - документ останется в analyzing, его можно перепроверить через /analyze
+        log.exception("document analysis failed for %s", doc_id)
+
+
+def needs_llm_analysis(doc: Document) -> bool:
+    return settings.llm_enabled and doc.document_type not in ai.NO_LLM_TYPES
 
 
 def document_types(legal_form: str | None, product_code: str | None) -> list[dict]:
@@ -259,7 +333,7 @@ class DocumentService:
             uploaded_at=now(),
         )
         doc.file_path = self.store(ctx.company.id, doc.id, 1, content)
-        doc.analysis = stub_analysis(doc, request.document_types if request else None)
+        self.start_analysis(doc, request)
         self.session.add(doc)
         await self.session.flush()
         return self.view(doc, await People.load(self.session, ctx.company))
@@ -320,14 +394,21 @@ class DocumentService:
         doc.status_reason = None
         doc.expires_at = None
         request = await self.session.get(InfoRequest, doc.info_request_id) if doc.info_request_id else None
-        doc.analysis = stub_analysis(doc, request.document_types if request else None)
+        self.start_analysis(doc, request)
         return self.view(doc, await People.load(self.session, ctx.company))
+
+    def start_analysis(self, doc: Document, request: InfoRequest | None) -> None:
+        """С LLM документ уходит на фоновый анализ (analyze_document_job), без неё сразу заглушка."""
+        if needs_llm_analysis(doc):
+            doc.status = "analyzing"
+            doc.analysis = pending_analysis()
+        else:
+            doc.analysis = stub_analysis(doc, request.document_types if request else None)
 
     async def analyze(self, ctx: ClientContext, doc_id: uuid.UUID) -> dict:
         ctx.require("upload_documents", "Проверку запускают сотрудники с правом загрузки")
         doc = await self.get(ctx, doc_id)
-        request = await self.session.get(InfoRequest, doc.info_request_id) if doc.info_request_id else None
-        doc.analysis = stub_analysis(doc, request.document_types if request else None)
+        await run_analysis(self.session, doc)
         return self.view(doc, await People.load(self.session, ctx.company))
 
     async def delete(self, ctx: ClientContext, doc_id: uuid.UUID) -> None:
