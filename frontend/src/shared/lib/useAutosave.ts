@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { errorText } from '@/shared/api/query';
 
-import { formatTime } from './format';
+
 
 export type AutosaveState = { status: 'idle' | 'saving' | 'saved' | 'error'; savedAt: string | null; error: string | null };
 
@@ -50,11 +50,4 @@ export function useAutosave<T>(save: (patch: T) => Promise<unknown>, delayMs = 1
   );
 
   return { state, schedule, flush };
-}
-
-export function autosaveText(state: AutosaveState) {
-  if (state.status === 'saving') return 'Сохраняем…';
-  if (state.status === 'saved' && state.savedAt) return `Сохранено в ${formatTime(state.savedAt)}`;
-  if (state.status === 'error') return `Не сохранилось: ${state.error}`;
-  return 'Черновик сохраняется автоматически';
 }

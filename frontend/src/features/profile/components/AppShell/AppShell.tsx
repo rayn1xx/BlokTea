@@ -1,34 +1,40 @@
-import type { ComponentType, ReactNode, SVGProps } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import type { ComponentType, SVGProps } from 'react';
 import { Navigate, NavLink, Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
-import { Button } from '@alfalab/core-components/button';
-import { Typography } from '@alfalab/core-components/typography';
 import { BellMIcon } from '@alfalab/icons-glyph/BellMIcon';
 import { ChartColumnThreeMIcon } from '@alfalab/icons-glyph/ChartColumnThreeMIcon';
+import { ChevronDownMIcon } from '@alfalab/icons-glyph/ChevronDownMIcon';
+import { ChevronRightMIcon } from '@alfalab/icons-glyph/ChevronRightMIcon';
 import { CreditCardMIcon } from '@alfalab/icons-glyph/CreditCardMIcon';
-import { DocumentsLinesMIcon } from '@alfalab/icons-glyph/DocumentsLinesMIcon';
+import { DocumentLinesMIcon } from '@alfalab/icons-glyph/DocumentLinesMIcon';
 import { GearMIcon } from '@alfalab/icons-glyph/GearMIcon';
 import { ListBulletedMIcon } from '@alfalab/icons-glyph/ListBulletedMIcon';
-import { LogOutMIcon } from '@alfalab/icons-glyph/LogOutMIcon';
+import { OfficeMIcon } from '@alfalab/icons-glyph/OfficeMIcon';
 import { UsersMIcon } from '@alfalab/icons-glyph/UsersMIcon';
-import { AlfaBankLogoMIcon } from '@alfalab/icons-logotype/AlfaBankLogoMIcon';
 
-import { shortName } from '@/app/session';
 import { authApi } from '@/features/auth/api';
+import { CompanyProfileModal } from '@/features/company/components/CompanyProfileModal';
+import { NotificationsDrawer } from '@/features/notifications/components/NotificationsDrawer';
 import { useHome } from '@/features/profile/hooks';
 import type { Home } from '@/features/profile/types';
 import { isApiError } from '@/shared/api/client';
 import { queryClient } from '@/shared/api/query';
-import { ROLE_LABELS } from '@/shared/i18n/ru';
-import { Card, ErrorState, LoadingState, NoRightsState } from '@/shared/ui';
+import { ERRORS, ROLE_LABELS } from '@/shared/i18n/ru';
+import { Avatar, Btn, Card, ErrorState, LoadingState, NoRightsState } from '@/shared/ui';
 
 import styles from './AppShell.module.css';
 
 type NavItem = { to: string; label: string; icon: ComponentType<SVGProps<SVGSVGElement>>; match?: string[] };
 
 const CLIENT_NAV: NavItem[] = [
-  { to: '/home', label: 'Кредитование', icon: CreditCardMIcon, match: ['/home', '/applications', '/match', '/products', '/loans', '/readiness'] },
-  { to: '/documents', label: 'Документы', icon: DocumentsLinesMIcon },
-  { to: '/team', label: 'Команда', icon: UsersMIcon },
+  {
+    to: '/home',
+    label: 'Кредитование',
+    icon: CreditCardMIcon,
+    match: ['/home', '/applications', '/match', '/products', '/loans', '/readiness', '/feed', '/onboarding', '/notifications'],
+  },
+  { to: '/documents', label: 'Документы', icon: DocumentLinesMIcon },
+  { to: '/team', label: 'Компания и команда', icon: UsersMIcon },
 ];
 
 const BANK_NAV: NavItem[] = [
@@ -36,6 +42,13 @@ const BANK_NAV: NavItem[] = [
   { to: '/bank/dashboard', label: 'Показатели', icon: ChartColumnThreeMIcon },
   { to: '/bank/settings', label: 'Настройки', icon: GearMIcon },
 ];
+
+type ShellControls = { openNotifications: () => void; openProfile: () => void };
+const ShellContext = createContext<ShellControls>({ openNotifications: () => undefined, openProfile: () => undefined });
+
+export function useShell() {
+  return useContext(ShellContext);
+}
 
 export function useCurrentHome() {
   return useOutletContext<Home>();
@@ -55,9 +68,21 @@ export function BankShell() {
   return <Shell kind='bank' />;
 }
 
+function personName(home: Home) {
+  return [home.first_name, home.last_name].filter(Boolean).join(' ');
+}
+
 function Shell({ kind }: { kind: 'client' | 'bank' }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const home = useHome();
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  useEffect(() => {
+    if (location.pathname === '/notifications') setNotificationsOpen(true);
+    if (location.pathname === '/onboarding/company') setProfileOpen(true);
+  }, [location.pathname]);
 
   if (home.isLoading) {
     return (
@@ -89,11 +114,14 @@ function Shell({ kind }: { kind: 'client' | 'bank' }) {
     return (
       <div className={styles.center}>
         <Card style={{ width: 'min(560px, 100%)' }}>
-          <NoRightsState title='Нет доступа к компании' text='У вашей учётной записи нет роли в компании, поэтому разделы кабинета недоступны. Попросите собственника бизнеса назначить вам роль в разделе «Команда»' />
+          <NoRightsState
+            title='Нет доступа к компании'
+            text={`${ERRORS.noCompanyRole}. У вашей учётной записи нет роли в компании, поэтому разделы кабинета недоступны`}
+          />
           <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <Button view='secondary' size={48} onClick={() => logoutAndGo(navigate)}>
+            <Btn variant='outline' size='l' onClick={() => logoutAndGo(navigate)}>
               Выйти
-            </Button>
+            </Btn>
           </div>
         </Card>
       </div>
@@ -101,63 +129,98 @@ function Shell({ kind }: { kind: 'client' | 'bank' }) {
   }
 
   const nav = kind === 'client' ? CLIENT_NAV : BANK_NAV;
-  const subtitle =
-    kind === 'client'
-      ? data.company?.short_name ?? ''
-      : data.bank_role === 'bank_admin'
-        ? 'Администратор кредитного процесса'
-        : 'Кредитный аналитик';
+  const roleText = data.role ? ROLE_LABELS[data.role] : data.bank_role === 'bank_admin' ? 'Администратор' : 'Кредитный аналитик';
+  const closeNotifications = () => {
+    setNotificationsOpen(false);
+    if (location.pathname === '/notifications') navigate('/home', { replace: true });
+  };
+  const closeProfile = () => {
+    setProfileOpen(false);
+    if (location.pathname === '/onboarding/company') navigate('/home', { replace: true });
+  };
 
   return (
-    <div className={styles.layout}>
-      <aside className={styles.sidebar} aria-label='Меню'>
-        <div className={styles.brand}>
-          <span className={styles.logo} aria-hidden>
-            <AlfaBankLogoMIcon />
-          </span>
-          <span className={styles.brandText}>
-            <span className={styles.brandName}>{kind === 'client' ? 'Альфа-Бизнес' : 'Альфа-Банк'}</span>
-            <span className={styles.brandSub}>{kind === 'client' ? 'Кредитный кабинет' : 'Кредитный конвейер'}</span>
-          </span>
-        </div>
-        <Nav items={nav} />
-      </aside>
+    <ShellContext.Provider value={{ openNotifications: () => setNotificationsOpen(true), openProfile: () => setProfileOpen(true) }}>
+      <div className={styles.layout}>
+        <aside className={styles.sidebar} aria-label='Меню'>
+          <NavLink to={kind === 'client' ? '/home' : '/bank/queue'} className={styles.logo} aria-label='Альфа-Бизнес'>
+            Альфа
+          </NavLink>
+          <Nav items={nav} />
+          <UserCard name={personName(data)} role={roleText} onLogout={() => logoutAndGo(navigate)} />
+        </aside>
 
-      <div className={styles.main}>
-        <header className={styles.header}>
-          <div className={styles.headerTitle}>
-            <span className={styles.mobileLogo} aria-hidden>
-              <AlfaBankLogoMIcon />
-            </span>
-            <Typography.Text view='primary-medium' weight='bold' className={styles.company}>
-              {subtitle}
-            </Typography.Text>
-          </div>
-          <div className={styles.headerRight}>
-            {kind === 'client' && (
-              <NavLink to='/notifications' className={styles.bell} aria-label={`Уведомления: ${data.unread_notifications}`}>
-                <BellMIcon />
-                {data.unread_notifications > 0 && <span className={styles.badge}>{data.unread_notifications}</span>}
-              </NavLink>
-            )}
-            <div className={styles.user}>
-              <span className={styles.userName}>{shortName(data)}</span>
-              <span className={styles.userRole}>{data.role ? ROLE_LABELS[data.role] : subtitle}</span>
-            </div>
-            <button type='button' className={styles.logout} onClick={() => logoutAndGo(navigate)} aria-label='Выйти'>
-              <LogOutMIcon />
+        <div className={styles.main}>
+          <header className={styles.header}>
+            <button type='button' className={styles.company} onClick={kind === 'client' ? () => setProfileOpen(true) : undefined}>
+              <span className={styles.mobileLogo}>Альфа</span>
+              <span className={styles.companyName}>{kind === 'client' ? data.company?.short_name ?? 'Компания' : 'Альфа-Банк · кредитный конвейер'}</span>
+              {kind === 'client' && <ChevronDownMIcon className={styles.companyChevron} />}
             </button>
-          </div>
-        </header>
+            {kind === 'client' && (
+              <div className={styles.headerRight}>
+                <button type='button' className={styles.bell} onClick={() => setNotificationsOpen(true)} aria-label={`Уведомления: ${data.unread_notifications}`}>
+                  <BellMIcon />
+                  {data.unread_notifications > 0 && <span className={styles.badge}>{data.unread_notifications}</span>}
+                </button>
+                <span className={styles.divider} />
+                <button type='button' className={styles.profileButton} onClick={() => setProfileOpen(true)}>
+                  <OfficeMIcon />
+                  <span className={styles.profileLabel}>Профиль компании</span>
+                  <ChevronDownMIcon className={styles.companyChevron} />
+                </button>
+              </div>
+            )}
+          </header>
 
-        <main className={styles.content}>
-          <Outlet context={data} />
-        </main>
+          <main className={styles.content}>
+            <Outlet context={data} />
+          </main>
+        </div>
+
+        <nav className={styles.bottomNav} aria-label='Меню'>
+          <Nav items={nav} compact />
+        </nav>
       </div>
 
-      <nav className={styles.bottomNav} aria-label='Меню'>
-        <Nav items={nav} compact />
-      </nav>
+      {kind === 'client' && (
+        <>
+          <NotificationsDrawer open={notificationsOpen} onClose={closeNotifications} />
+          <CompanyProfileModal open={profileOpen} onClose={closeProfile} />
+        </>
+      )}
+    </ShellContext.Provider>
+  );
+}
+
+function UserCard({ name, role, onLogout }: { name: string; role: string; onLogout: () => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+  return (
+    <div ref={ref} className={styles.userWrap}>
+      {open && (
+        <div className={styles.userMenu} role='menu'>
+          <button type='button' role='menuitem' className={styles.userMenuItem} onClick={onLogout}>
+            Выйти
+          </button>
+        </div>
+      )}
+      <button type='button' className={styles.user} onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+        <Avatar name={name} />
+        <span className={styles.userText}>
+          <span className={styles.userName}>{name}</span>
+          <span className={styles.userRole}>{role}</span>
+        </span>
+        <ChevronRightMIcon className={styles.userChevron} />
+      </button>
     </div>
   );
 }
@@ -184,8 +247,4 @@ function Nav({ items, compact }: { items: NavItem[]; compact?: boolean }) {
       })}
     </ul>
   );
-}
-
-export function PageContainer({ children, narrow }: { children: ReactNode; narrow?: boolean }) {
-  return <div className={narrow ? styles.narrow : undefined}>{children}</div>;
 }

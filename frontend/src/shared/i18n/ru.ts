@@ -1,4 +1,4 @@
-import type { ApplicationStatus, CollateralType, DataSource, Disbursement, DocumentStatus, NeedType, Permission, Preference, PurposeCode, ReadinessStatus, SignerStatus, SigningDocumentType, TaxRegime, Urgency, UserRole } from '@/shared/types/common';
+import type { ApplicationStatus, CollateralType, DataSource, DocumentStatus, PurposeCode, ReadinessStatus, SigningDocumentType, TaxRegime, UserRole } from '@/shared/types/common';
 
 export type StatusTone = 'neutral' | 'info' | 'attention' | 'positive' | 'negative' | 'purple';
 
@@ -44,14 +44,6 @@ export const ROLE_SHORT: Record<UserRole, string> = {
   authorized_employee: 'уполномоченный сотрудник',
 };
 
-export const PERMISSION_LABELS: Record<Permission, string> = {
-  submit_applications: 'Подавать заявки',
-  upload_documents: 'Загружать документы',
-  sign: 'Подписывать',
-  accept_offers: 'Принимать предложения банка',
-  manage_team: 'Управлять командой',
-};
-
 export const PURPOSE_LABELS: Record<PurposeCode, string> = {
   equipment: 'Покупка оборудования',
   repair: 'Ремонт',
@@ -62,33 +54,11 @@ export const PURPOSE_LABELS: Record<PurposeCode, string> = {
   other: 'Другое',
 };
 
-export const NEED_TYPE_LABELS: Record<NeedType, string> = {
-  one_time: 'Разовая',
-  recurring: 'Регулярная',
-};
-
-export const DISBURSEMENT_LABELS: Record<Disbursement, string> = {
-  lump_sum: 'Всей суммой сразу',
-  tranches: 'Частями по мере необходимости',
-};
-
-export const URGENCY_LABELS: Record<Urgency, string> = {
-  asap: 'Как можно скорее',
-  week: 'В течение недели',
-  not_urgent: 'Не срочно',
-};
-
 export const COLLATERAL_LABELS: Record<CollateralType, string> = {
   none: 'Без залога',
   real_estate: 'Недвижимость',
   vehicle_equipment: 'Транспорт или оборудование',
   purchased_asset: 'Покупаемое имущество',
-};
-
-export const PREFERENCE_LABELS: Record<Preference, string> = {
-  lower_payment: 'Меньше платёж',
-  lower_overpayment: 'Меньше переплата',
-  flexibility: 'Гибкость',
 };
 
 export const TAX_REGIME_LABELS: Record<TaxRegime, string> = {
@@ -109,29 +79,12 @@ export const SOURCE_LABELS: Record<DataSource, string> = {
   system: 'Расчёт',
 };
 
-export const SOURCE_EXPLAIN: Record<DataSource, string> = {
-  registry: 'Сведения о компании берём из ЕГРЮЛ и ЕГРИП',
-  alfa_lk: 'Поступления, расходы и кредиты в Альфе считаем по операциям в Альфа-Бизнесе',
-  bki: 'Кредиты в других банках видим по данным бюро кредитных историй',
-  fns: 'Налоговую задолженность проверяем в сервисе ФНС «Прозрачный бизнес»',
-  multibank: 'Обороты в других банках подтягиваем через мультибанкинг',
-  client: 'Эти данные вы указали сами',
-  system: 'Рассчитали по данным выше',
-};
-
 export const DOCUMENT_STATUS: Record<DocumentStatus, { label: string; tone: StatusTone }> = {
   uploaded: { label: 'Загружен', tone: 'neutral' },
   analyzing: { label: 'Проверяем', tone: 'info' },
   accepted: { label: 'Принят', tone: 'positive' },
   rejected: { label: 'Отклонён', tone: 'negative' },
   expiring: { label: 'Скоро устареет', tone: 'attention' },
-};
-
-export const SIGNER_STATUS: Record<SignerStatus, { label: string; tone: StatusTone }> = {
-  waiting: { label: 'Ожидает очереди', tone: 'neutral' },
-  pending: { label: 'Ждём подпись', tone: 'attention' },
-  signed: { label: 'Подписано', tone: 'positive' },
-  declined: { label: 'Отказался', tone: 'negative' },
 };
 
 export const SIGNING_DOCUMENT_LABELS: Record<SigningDocumentType, string> = {
@@ -168,3 +121,24 @@ export const TEXTS = {
   demoData: 'Демонстрационные данные',
   mockCheck: 'мок',
 };
+
+export const APP_STATUS: Record<ApplicationStatus, { label: string; pill: 'grey' | 'green' | 'yellow' | 'red' | 'blue'; next: string }> = {
+  draft: { label: 'Черновик', pill: 'grey', next: 'Заполнены параметры кредита' },
+  submitted: { label: 'Отправлена', pill: 'blue', next: 'Банк скоро возьмёт заявку в работу' },
+  in_review: { label: 'На проверке', pill: 'grey', next: 'Сейчас действует банк' },
+  info_requested: { label: 'Нужен документ', pill: 'grey', next: 'Банк запросил документ' },
+  approved: { label: 'Одобрена', pill: 'green', next: 'Подтвердите условия' },
+  counter_offer: { label: 'Предложение банка', pill: 'yellow', next: 'Банк предложил другие условия' },
+  rejected: { label: 'Не одобрена', pill: 'grey', next: 'Посмотрите причины решения' },
+  signing: { label: 'Готова к подписанию', pill: 'green', next: 'Ожидается подпись' },
+  issued: { label: 'Кредит выдан', pill: 'green', next: 'Перейти к условиям и графику' },
+  cancelled: { label: 'Отозвана', pill: 'grey', next: 'Рассмотрение прекращено' },
+};
+
+export const CANCEL_REASONS = [
+  'Нашли другое финансирование',
+  'Изменились планы бизнеса',
+  'Не устроили условия',
+  'Подам новую заявку с другими параметрами',
+  'Другое',
+];

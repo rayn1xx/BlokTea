@@ -1,0 +1,113 @@
+.page {
+  max-width: 900px;
+}
+
+.titleRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ok {
+  width: 36px;
+  height: 36px;
+  color: var(--a-green);
+}
+
+.section {
+  margin-bottom: 12px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.payment {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--a-border);
+  font-size: 16px;
+}
+
+.paymentFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--a-text-2);
+}
+
+.paymentFoot button {
+  font-size: 14px;
+  color: var(--a-text);
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+}
+
+.muted {
+  font-size: 14px;
+  line-height: 19px;
+  color: var(--a-text-2);
+}
+
+.nextRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.next {
+  margin-top: 4px;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.nextSide {
+  padding-left: 24px;
+  border-left: 1px solid var(--a-green-border);
+}
+
+.yearRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.yearRow nav {
+  flex: 1;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.preview {
+  min-height: 300px;
+  padding: 20px;
+  border-radius: 12px;
+  background: var(--a-bg-soft);
+  white-space: pre-wrap;
+  font: inherit;
+  font-size: 14px;
+}
+
+@media (max-width: 767px) {
+  .nextRow {
+    grid-template-columns: 1fr;
+  }
+  .nextSide {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .actions {
+    flex-direction: column;
+  }
+}

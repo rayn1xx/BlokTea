@@ -1,0 +1,111 @@
+.task {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--a-bg-soft);
+}
+
+.muted {
+  display: block;
+  font-size: 13px;
+  line-height: 17px;
+  color: var(--a-text-2);
+}
+
+.label {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--a-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--a-border);
+  background: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.item:last-child {
+  border-bottom: 0;
+}
+
+.item:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.itemActive {
+  background: var(--a-red-soft);
+  box-shadow: inset 0 0 0 1.5px var(--a-red);
+}
+
+.itemText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.radio {
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid #b5b9bf;
+  border-radius: 50%;
+}
+
+.itemActive .radio {
+  border: 6px solid var(--a-red);
+}
+
+.center {
+  margin-top: -6px;
+  font-size: 13px;
+  text-align: center;
+  color: var(--a-text-2);
+}
+
+.footerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.footerRow button {
+  font-size: 14px;
+}
+
+.commentToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.note {
+  margin-top: 10px;
+  font-size: 13px;
+  text-align: center;
+  color: var(--a-text-2);
+}

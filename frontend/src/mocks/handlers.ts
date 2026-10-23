@@ -1187,11 +1187,24 @@ const applicationHandlers = [
       if (!loan) fail(404, 'NOT_FOUND', 'Кредит не найден');
       const { company_id: _ignored, ...out } = loan;
       if (!out.schedule.length && out.next_payment) {
-        const months = Math.max(1, Math.round(out.balance.value / out.next_payment.amount.value));
-        out.schedule = calcPayment(out.balance.value, months, out.rate_percent, new Date(out.next_payment.date)).schedule.map((r, i) => ({
-          ...r,
-          date: new Date(new Date(out.next_payment!.date).getFullYear(), new Date(out.next_payment!.date).getMonth() + i, new Date(out.next_payment!.date).getDate()).toISOString().slice(0, 10),
-        }));
+        const [y, m, d] = out.next_payment.date.slice(0, 10).split('-').map(Number);
+        const rate = out.rate_percent / 1200;
+        let balance = out.balance.value;
+        for (let i = 0; balance > 0 && i < 120; i++) {
+          const interest = Math.round(balance * rate);
+          const payment = Math.min(out.next_payment.amount.value, balance + interest);
+          const principal = payment - interest;
+          balance -= principal;
+          const due = new Date(Date.UTC(y, m - 1 + i, d));
+          out.schedule.push({
+            n: i + 1,
+            date: due.toISOString().slice(0, 10),
+            payment: { value: payment, currency: 'RUB' },
+            principal: { value: principal, currency: 'RUB' },
+            interest: { value: interest, currency: 'RUB' },
+            balance: { value: Math.max(0, balance), currency: 'RUB' },
+          });
+        }
       }
       return out;
     }),

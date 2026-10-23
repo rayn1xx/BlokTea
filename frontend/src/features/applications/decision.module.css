@@ -1,0 +1,152 @@
+.page {
+  max-width: 900px;
+}
+
+.green,
+.yellow,
+.red {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 24px;
+  border-radius: 16px;
+}
+
+.green {
+  background: #f0f7f2;
+}
+
+.yellow {
+  background: var(--a-yellow-soft);
+}
+
+.red {
+  background: var(--a-red-soft);
+}
+
+.green > div:last-child,
+.green > div:nth-child(3) {
+  align-self: stretch;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.title {
+  margin: 0;
+  font-size: 26px;
+  line-height: 32px;
+  font-weight: 700;
+}
+
+.subtitle {
+  margin: 0 0 12px;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.muted {
+  font-size: 14px;
+  color: var(--a-text-2);
+}
+
+.text {
+  font-size: 15px;
+  line-height: 21px;
+}
+
+.compare {
+  align-self: stretch;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+}
+
+.box {
+  padding: 16px 20px;
+  border: 1px solid var(--a-border);
+  border-radius: 12px;
+  background: #fff;
+  font-size: 15px;
+}
+
+.boxGood {
+  border-color: var(--a-green);
+}
+
+.big {
+  margin: 4px 0;
+  font-size: 30px;
+  line-height: 36px;
+  font-weight: 700;
+}
+
+.bad {
+  margin-top: 4px;
+  font-weight: 700;
+  color: var(--a-red);
+}
+
+.good {
+  margin-top: 4px;
+  font-weight: 700;
+  color: var(--a-green);
+}
+
+.arrow {
+  width: 24px;
+  height: 24px;
+  color: var(--a-text-2);
+}
+
+.choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  border: 1px solid var(--a-border);
+  border-radius: 12px;
+}
+
+.card > button {
+  margin-top: 14px;
+}
+
+.cardTitle {
+  font-size: 18px;
+}
+
+.wide {
+  align-self: flex-start;
+  min-width: 360px;
+}
+
+.error {
+  color: var(--a-red);
+}
+
+@media (max-width: 767px) {
+  .compare,
+  .choices {
+    grid-template-columns: 1fr;
+  }
+  .arrow {
+    transform: rotate(90deg);
+    justify-self: center;
+  }
+  .wide {
+    min-width: 0;
+    align-self: stretch;
+  }
+}

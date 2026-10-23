@@ -64,20 +64,6 @@ export function plural(n: number, one: string, few: string, many: string) {
   return many;
 }
 
-export function formatRelative(value: string | null | undefined, now = Date.now()) {
-  if (!value) return '';
-  const diff = Math.round((now - parse(value).getTime()) / 1000);
-  if (diff < 60) return 'только что';
-  const minutes = Math.round(diff / 60);
-  if (minutes < 60) return `${minutes} ${plural(minutes, 'минуту', 'минуты', 'минут')} назад`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} ${plural(hours, 'час', 'часа', 'часов')} назад`;
-  const days = Math.round(hours / 24);
-  if (days === 1) return 'вчера';
-  if (days < 7) return `${days} ${plural(days, 'день', 'дня', 'дней')} назад`;
-  return formatDate(value);
-}
-
 export function formatMonths(n: number) {
   return `${n} ${plural(n, 'месяц', 'месяца', 'месяцев')}`;
 }
@@ -109,4 +95,27 @@ export function formatNumberInput(value: number | null | undefined) {
 export function parseNumberInput(value: string) {
   const digits = value.replace(/[^\d]/g, '');
   return digits ? Number(digits) : null;
+}
+
+export function formatLongDate(value: string | null | undefined) {
+  if (!value) return '';
+  const d = parse(value);
+  return `${d.getDate()} ${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+export function formatShortDateTime(value: string | null | undefined) {
+  if (!value) return '';
+  const d = parse(value);
+  return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}., ${formatTime(value)}`;
+}
+
+export function formatNumericDate(value: string | null | undefined) {
+  if (!value) return '';
+  const d = parse(value);
+  return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
+}
+
+export function appNo(number: string) {
+  const digits = number.match(/(\d+)$/)?.[1];
+  return digits ? `№${Number(digits)}` : number;
 }

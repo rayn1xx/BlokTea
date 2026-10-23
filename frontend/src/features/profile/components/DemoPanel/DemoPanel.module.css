@@ -94,3 +94,7 @@
     right: 12px;
   }
 }
+
+:global(body:has([data-sticky-bar])) .root {
+  bottom: 96px;
+}

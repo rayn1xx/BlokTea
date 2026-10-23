@@ -1,24 +1,32 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { Button } from '@alfalab/core-components/button';
 
 import { matchingApi } from '@/features/matching/api';
-import { Footer } from '@/features/matching/components/StepFooter';
-import { mergePatch, TERM_OPTIONS, useSessionAutosave } from '@/features/matching/lib';
+import { StepHeader } from '@/features/matching/components/StepHeader';
+import { mergePatch, useSessionAutosave } from '@/features/matching/lib';
 import type { MatchingSession } from '@/features/matching/types';
 import { errorText, fieldErrors, queryClient } from '@/shared/api/query';
 import { keys } from '@/shared/api/queryKeys';
-import { COLLATERAL_LABELS, DISBURSEMENT_LABELS, NEED_TYPE_LABELS, PURPOSE_LABELS, URGENCY_LABELS } from '@/shared/i18n/ru';
-import { autosaveText } from '@/shared/lib/useAutosave';
+import { PURPOSE_LABELS } from '@/shared/i18n/ru';
+import { formatNumberInput, parseNumberInput, rubToMoney } from '@/shared/lib/format';
 import type { CollateralType, Disbursement, NeedType, PurposeCode, Urgency } from '@/shared/types/common';
-import { Card, Chips, FieldGroup, FieldLabel, MoneyInput, Note, Stack, uiStyles as s } from '@/shared/ui';
+import { Btn, Dialog, Field, ModalFooter, Options, SelectField, Stack, TextField } from '@/shared/ui';
 
-export function StepNeed({ session }: { session: MatchingSession }) {
+import m from '../matching.module.css';
+
+type Pledge = 'yes' | 'no' | 'unknown';
+
+const REQUIRED = <span className={m.required}>*</span>;
+
+export function StepNeed({ session, onClose }: { session: MatchingSession; onClose: () => void }) {
   const navigate = useNavigate();
   const [need, setNeed] = useState(session.need);
+  const [pledge, setPledge] = useState<Pledge | null>(
+    session.need.collateral === 'none' ? 'no' : session.need.collateral ? 'yes' : null,
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const { state, schedule, flush } = useSessionAutosave(session);
+  const { schedule, flush } = useSessionAutosave(session);
 
   const update = <K extends keyof MatchingSession['need']>(key: K, value: MatchingSession['need'][K]) => {
     setNeed((n) => ({ ...n, [key]: value }));
@@ -26,19 +34,16 @@ export function StepNeed({ session }: { session: MatchingSession }) {
     schedule({ need: { [key]: value } }, mergePatch);
   };
 
+  const setPledgeValue = (v: Pledge) => {
+    setPledge(v);
+    const collateral: CollateralType | null = v === 'no' ? 'none' : v === 'yes' ? need.collateral && need.collateral !== 'none' ? need.collateral : 'real_estate' : null;
+    update('collateral', collateral);
+  };
+
+  const filled = !!(need.purpose && need.amount?.value && need.term_months && need.need_type && need.disbursement && need.urgency);
+
   const next = useMutation({
     mutationFn: async () => {
-      const local: Record<string, string> = {};
-      if (!need.purpose) local.purpose = 'Выберите цель';
-      if (!need.amount?.value) local.amount = 'Укажите сумму';
-      if (!need.term_months) local.term_months = 'Укажите срок';
-      if (!need.need_type) local.need_type = 'Выберите вариант';
-      if (!need.disbursement) local.disbursement = 'Выберите вариант';
-      if (!need.urgency) local.urgency = 'Выберите вариант';
-      if (Object.keys(local).length) {
-        setErrors(local);
-        throw new Error('validation');
-      }
       await flush().catch(() => undefined);
       return matchingApi.patch(session.id, { need, step: 2 });
     },
@@ -46,94 +51,123 @@ export function StepNeed({ session }: { session: MatchingSession }) {
       queryClient.setQueryData(keys.matching(session.id), updated);
       navigate(`/match/${session.id}/step/2`);
     },
-    onError: (e) => {
-      if (e instanceof Error && e.message === 'validation') return;
-      setErrors(Object.keys(fieldErrors(e)).length ? fieldErrors(e) : { form: errorText(e) });
-    },
+    onError: (e) => setErrors(Object.keys(fieldErrors(e)).length ? fieldErrors(e) : { form: errorText(e) }),
   });
 
   return (
-    <Stack gap={16}>
-      <Note tone='info'>Мы уже учли данные компании: ИНН, ОКВЭД, возраст бизнеса, обороты</Note>
-      <Card>
-        <Stack gap={28}>
-          <FieldGroup label={<FieldLabel tag='required'>На что нужны деньги</FieldLabel>} error={errors.purpose}>
-            <Chips
-              options={(Object.keys(PURPOSE_LABELS) as PurposeCode[]).map((p) => ({ value: p, label: PURPOSE_LABELS[p] }))}
-              value={need.purpose}
-              onChange={(v) => update('purpose', v)}
-            />
-          </FieldGroup>
-
-          <div className={s.grid2}>
-            <FieldGroup label={<FieldLabel tag='required'>Сколько нужно</FieldLabel>} error={errors.amount}>
-              <MoneyInput label='Сумма' value={need.amount} onChange={(v) => update('amount', v)} />
-            </FieldGroup>
-            <FieldGroup label={<FieldLabel tag='required'>На какой срок</FieldLabel>} error={errors.term_months}>
-              <Chips
-                options={TERM_OPTIONS.map((t) => ({ value: String(t), label: `${t} мес.` }))}
-                value={need.term_months ? String(need.term_months) : null}
-                onChange={(v) => update('term_months', Number(v))}
-              />
-            </FieldGroup>
-          </div>
-
-          <FieldGroup
-            label={<FieldLabel tag='required'>Потребность разовая или регулярная</FieldLabel>}
-            error={errors.need_type}
-            hint={need.need_type === 'recurring' ? 'Подойдёт овердрафт или кредитная линия' : undefined}
-          >
-            <Chips
-              options={(Object.keys(NEED_TYPE_LABELS) as NeedType[]).map((v) => ({ value: v, label: NEED_TYPE_LABELS[v] }))}
-              value={need.need_type}
-              onChange={(v) => update('need_type', v)}
-            />
-          </FieldGroup>
-
-          <FieldGroup
-            label={<FieldLabel tag='required'>Как получить деньги</FieldLabel>}
-            error={errors.disbursement}
-            hint={need.disbursement === 'tranches' ? 'Подойдёт кредитная линия' : undefined}
-          >
-            <Chips
-              options={(Object.keys(DISBURSEMENT_LABELS) as Disbursement[]).map((v) => ({ value: v, label: DISBURSEMENT_LABELS[v] }))}
-              value={need.disbursement}
-              onChange={(v) => update('disbursement', v)}
-            />
-          </FieldGroup>
-
-          <FieldGroup label={<FieldLabel tag='required'>Насколько срочно</FieldLabel>} error={errors.urgency}>
-            <Chips
-              options={(Object.keys(URGENCY_LABELS) as Urgency[]).map((v) => ({ value: v, label: URGENCY_LABELS[v] }))}
-              value={need.urgency}
-              onChange={(v) => update('urgency', v)}
-            />
-          </FieldGroup>
-
-          <FieldGroup label={<FieldLabel tag='situational'>Готовы предложить залог</FieldLabel>} hint='Залог не обязателен, но помогает получить большую сумму'>
-            <Chips
-              options={(Object.keys(COLLATERAL_LABELS) as CollateralType[]).map((v) => ({ value: v, label: COLLATERAL_LABELS[v] }))}
-              value={need.collateral}
-              onChange={(v) => update('collateral', v)}
-            />
-          </FieldGroup>
-
-          {errors.form && <Note tone='negative'>{errors.form}</Note>}
-        </Stack>
-      </Card>
-      <Footer
-        left={
-          <Button view='secondary' size={56} onClick={() => navigate('/home')}>
-            Назад
-          </Button>
-        }
-        saved={autosaveText(state)}
-        right={
-          <Button view='primary' size={56} onClick={() => next.mutate()} loading={next.isPending}>
+    <Dialog
+      open
+      onClose={onClose}
+      size={600}
+      title='На что нужны деньги?'
+      subtitle={<StepHeader step={1} />}
+      footer={
+        <ModalFooter note='Можно вернуться позже, ответы сохранятся'>
+          <Btn variant='ghost' size='l' onClick={onClose}>
+            Отмена
+          </Btn>
+          <Btn size='l' disabled={!filled} loading={next.isPending} onClick={() => next.mutate()}>
             Далее
-          </Button>
-        }
-      />
-    </Stack>
+          </Btn>
+        </ModalFooter>
+      }
+    >
+      <Stack gap={18}>
+        <div className={m.lead}>
+          Укажите параметры нового кредита. Данные компании повторно вводить не нужно.
+          <div className={m.small}>Поля со {REQUIRED} обязательны</div>
+        </div>
+
+        <Field label={<>Цель финансирования {REQUIRED}</>} hint='Оборудование, закупка товара, текущие расходы и другое' error={errors.purpose}>
+          <SelectField<PurposeCode>
+            value={need.purpose ?? ''}
+            placeholder='Выберите цель'
+            options={(Object.keys(PURPOSE_LABELS) as PurposeCode[]).map((p) => ({ value: p, label: PURPOSE_LABELS[p] }))}
+            onChange={(v) => update('purpose', v)}
+            ariaLabel='Цель финансирования'
+          />
+        </Field>
+
+        <div className={m.two}>
+          <Field label={<>Сумма {REQUIRED}</>} error={errors.amount}>
+            <TextField
+              value={formatNumberInput(need.amount ? need.amount.value / 100 : null)}
+              onChange={(v) => {
+                const rub = parseNumberInput(v);
+                update('amount', rub ? rubToMoney(rub) : null);
+              }}
+              placeholder='Введите сумму'
+              suffix='₽'
+              inputMode='numeric'
+              ariaLabel='Сумма'
+            />
+          </Field>
+          <Field label={<>Срок возврата {REQUIRED}</>} error={errors.term_months}>
+            <TextField
+              value={need.term_months ? String(need.term_months) : ''}
+              onChange={(v) => update('term_months', parseNumberInput(v))}
+              placeholder='Количество месяцев'
+              suffix='мес.'
+              inputMode='numeric'
+              ariaLabel='Срок возврата, месяцев'
+            />
+          </Field>
+        </div>
+
+        <Field label={<>Как часто нужны деньги? {REQUIRED}</>} error={errors.need_type}>
+          <Options<NeedType>
+            radio
+            columns={2}
+            options={[
+              { value: 'one_time', label: 'Разово' },
+              { value: 'recurring', label: 'Регулярно' },
+            ]}
+            value={need.need_type}
+            onChange={(v) => update('need_type', v)}
+          />
+        </Field>
+
+        <Field label={<>Как планируете получать деньги? {REQUIRED}</>} error={errors.disbursement}>
+          <Options<Disbursement>
+            radio
+            columns={2}
+            options={[
+              { value: 'lump_sum', label: 'Всю сумму сразу' },
+              { value: 'tranches', label: 'Частями' },
+            ]}
+            value={need.disbursement}
+            onChange={(v) => update('disbursement', v)}
+          />
+        </Field>
+
+        <Field label={<>Когда нужны деньги? {REQUIRED}</>} error={errors.urgency}>
+          <Options<Urgency>
+            options={[
+              { value: 'asap', label: 'Сегодня или завтра' },
+              { value: 'week', label: 'В течение недели' },
+              { value: 'not_urgent', label: 'Не срочно' },
+            ]}
+            value={need.urgency}
+            onChange={(v) => update('urgency', v)}
+          />
+        </Field>
+
+        <div className={m.divider} />
+
+        <Field label='Готовы рассмотреть залог?' optional hint='Если да, уточним сведения на следующем этапе'>
+          <Options<Pledge>
+            radio
+            options={[
+              { value: 'yes', label: 'Да' },
+              { value: 'no', label: 'Нет' },
+              { value: 'unknown', label: 'Пока не знаю' },
+            ]}
+            value={pledge}
+            onChange={setPledgeValue}
+          />
+        </Field>
+        {errors.form && <div className={m.error}>{errors.form}</div>}
+      </Stack>
+    </Dialog>
   );
 }

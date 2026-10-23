@@ -8,3 +8,4 @@ export * from './layout';
 export * from './MoneyInput';
 export * from './PageState';
 export * from './tags';
+export * from './kit';

@@ -5,5 +5,5 @@ import { keys } from '@/shared/api/queryKeys';
 
 import { signingApi } from './api';
 
-export const useSigning = (id: string) =>
-  useQuery({ queryKey: keys.signing(id), queryFn: () => signingApi.get(id), refetchInterval: POLL_MS });
+export const useSigning = (id: string, enabled = true) =>
+  useQuery({ queryKey: keys.signing(id), queryFn: () => signingApi.get(id), refetchInterval: POLL_MS, enabled, retry: false });

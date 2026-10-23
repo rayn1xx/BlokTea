@@ -1,11 +1,12 @@
-import { queryClient } from '@/shared/api/query';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
+import { errorText, queryClient } from '@/shared/api/query';
 import { keys } from '@/shared/api/queryKeys';
 import { useAutosave } from '@/shared/lib/useAutosave';
 
 import { matchingApi } from './api';
-import type { MatchingExtra, MatchingSession, MatchingSessionPatch } from './types';
-
-export const STEPS = ['Задача', 'Финансы', 'Подробности', 'Рекомендация'];
+import type { MatchingSession, MatchingSessionPatch } from './types';
 
 export function mergePatch(a: MatchingSessionPatch, b: MatchingSessionPatch): MatchingSessionPatch {
   return {
@@ -23,8 +24,13 @@ export function useSessionAutosave(session: MatchingSession) {
   });
 }
 
-export const TERM_OPTIONS = [6, 12, 18, 24, 36, 48, 60];
-
-export function hasExtra(x: MatchingExtra) {
-  return !!(x.expected_payments.length || x.other_bank_turnover_monthly || x.own_funds || x.collateral_details || x.preference);
+export function useStartMatching() {
+  const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
+  const start = useMutation({
+    mutationFn: matchingApi.create,
+    onSuccess: (session) => navigate(`/match/${session.id}/step/1`),
+    onError: (e) => setError(errorText(e)),
+  });
+  return { start: () => start.mutate(), pending: start.isPending, error };
 }

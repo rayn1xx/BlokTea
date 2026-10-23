@@ -1,0 +1,42 @@
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 20px 0 16px;
+}
+
+.search {
+  flex: 0 1 420px;
+}
+
+.sort {
+  flex: 0 0 200px;
+}
+
+.amount {
+  font-size: 17px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.action {
+  min-width: 130px;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--a-text-2);
+}
+
+@media (max-width: 767px) {
+  .toolbar {
+    flex-direction: column;
+  }
+  .search,
+  .sort {
+    flex: 1 1 auto;
+  }
+}

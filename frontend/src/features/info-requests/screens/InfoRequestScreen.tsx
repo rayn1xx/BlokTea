@@ -1,12 +1,17 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQueries, useQuery } from '@tanstack/react-query';
-import { Button } from '@alfalab/core-components/button';
-import { Textarea } from '@alfalab/core-components/textarea';
-import { Typography } from '@alfalab/core-components/typography';
+import { ArrowUpMIcon } from '@alfalab/icons-glyph/ArrowUpMIcon';
+import { ChevronDownMIcon } from '@alfalab/icons-glyph/ChevronDownMIcon';
+import { DocumentLinesMIcon } from '@alfalab/icons-glyph/DocumentLinesMIcon';
+import { DocumentMIcon } from '@alfalab/icons-glyph/DocumentMIcon';
+import { UserMIcon } from '@alfalab/icons-glyph/UserMIcon';
 
+import { useApplication } from '@/features/applications/hooks';
+import type { ApplicationDetail } from '@/features/applications/types';
 import { documentsApi } from '@/features/documents/api';
 import { DocumentAnalysisView } from '@/features/documents/components/DocumentAnalysisView';
+import { PdfIcon } from '@/features/documents/components/PdfIcon';
 import { useDocumentTypes } from '@/features/documents/hooks';
 import type { DocumentRef, FromLkRequest } from '@/features/documents/types';
 import { infoRequestsApi } from '@/features/info-requests/api';
@@ -14,35 +19,41 @@ import type { InfoRequest } from '@/features/info-requests/types';
 import { useCurrentHome } from '@/features/profile/components/AppShell/AppShell';
 import { tasksApi } from '@/features/tasks/api';
 import { useTasks } from '@/features/tasks/hooks';
-import { MemberPicker } from '@/features/team/components/MemberPicker';
+import { AssignDialog } from '@/features/team/components/AssignDialog';
 import { errorText, invalidateApplication } from '@/shared/api/query';
 import { keys } from '@/shared/api/queryKeys';
-import { formatDate, formatDateTime, formatFileSize } from '@/shared/lib/format';
-import { Card, CardTitle, Dialog, FieldTag, FileDrop, Note, PageHeader, QueryGate, Row, SmallTag, Stack, Text, uiStyles as s } from '@/shared/ui';
+import { appNo, formatFileSize, formatLongDate, formatMoney, formatMonths, formatShortDateTime } from '@/shared/lib/format';
+import { Btn, DashedArea, Dialog, FileDrop, IconCircle, PageHead, Pill, QueryGate, SkeletonLines, Stack, TextArea, TextLink, kit } from '@/shared/ui';
 
-export function InfoRequestScreen() {
-  const { id = '', rid = '' } = useParams();
-  const request = useQuery({ queryKey: keys.infoRequest(id, rid), queryFn: () => infoRequestsApi.get(id, rid) });
-  return <QueryGate query={request}>{(data) => <InfoRequestView applicationId={id} request={data} />}</QueryGate>;
-}
+import r from '../info.module.css';
 
 const LK_KIND: Record<string, FromLkRequest['kind']> = {
   bank_statement: 'bank_statement',
+  other_bank_statements: 'bank_statement',
   fin_statements_2025: 'fin_turnover',
   tax_return: 'tax_data',
 };
 
-function InfoRequestView({ applicationId, request }: { applicationId: string; request: InfoRequest }) {
+export function InfoRequestScreen() {
+  const { id = '', rid = '' } = useParams();
+  const app = useApplication(id);
+  const request = useQuery({ queryKey: keys.infoRequest(id, rid), queryFn: () => infoRequestsApi.get(id, rid) });
+  return <QueryGate query={request}>{(data) => (app.data ? <RequestView app={app.data} request={data} /> : <SkeletonLines lines={5} />)}</QueryGate>;
+}
+
+function RequestView({ app, request }: { app: ApplicationDetail; request: InfoRequest }) {
   const navigate = useNavigate();
   const home = useCurrentHome();
   const types = useDocumentTypes(home.company?.legal_form);
-  const tasks = useTasks('mine');
+  const tasks = useTasks('all');
   const [docIds, setDocIds] = useState<string[]>([]);
   const [comment, setComment] = useState('');
-  const [pickOpen, setPickOpen] = useState(false);
-  const [reassignOpen, setReassignOpen] = useState(false);
+  const [commentOpen, setCommentOpen] = useState(false);
+  const [mode, setMode] = useState<null | 'pick' | 'upload' | 'assign'>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const task = tasks.data?.find((t) => t.type === 'info_request' && t.cta.route.endsWith(request.id));
+  const isMine = !task || task.assignee?.user_id === home.id;
   const docs = useQueries({
     queries: docIds.map((docId) => ({
       queryKey: keys.document(docId),
@@ -50,23 +61,19 @@ function InfoRequestView({ applicationId, request }: { applicationId: string; re
       refetchInterval: (q: { state: { data?: DocumentRef } }) => (q.state.data?.status === 'analyzing' ? 1500 : false),
     })),
   });
-
-  const companyDocs = useQuery({ queryKey: keys.documents({ scope: 'company' }), queryFn: () => documentsApi.list({}) });
-  const task = tasks.data?.find((t) => t.type === 'info_request' && t.cta.route.endsWith(request.id));
-  const requestedTitles = request.requested_document_types.map((code) => types.data?.find((t) => t.code === code)?.title ?? code);
+  const companyDocs = useQuery({ queryKey: keys.documents({ all: true }), queryFn: () => documentsApi.list({}) });
+  const typeInfo = types.data?.find((t) => t.code === request.requested_document_types[0]);
   const lkKind = request.requested_document_types.map((t) => LK_KIND[t]).find(Boolean);
-  const canRespond = request.status === 'open';
+  const open = request.status === 'open';
+  const canRespond = open && app.available_actions.includes('info_request.respond');
 
   const upload = useMutation({
     mutationFn: (file: File) =>
-      documentsApi.upload({
-        file,
-        document_type: request.requested_document_types.length === 1 ? request.requested_document_types[0] : undefined,
-        scope: 'application',
-        application_id: applicationId,
-        info_request_id: request.id,
-      }),
-    onSuccess: (doc) => setDocIds((ids) => [...ids, doc.id]),
+      documentsApi.upload({ file, document_type: request.requested_document_types[0], scope: 'application', application_id: app.id, info_request_id: request.id }),
+    onSuccess: (doc) => {
+      setDocIds((ids) => [...ids, doc.id]);
+      setMode(null);
+    },
     onError: (e) => setError(errorText(e)),
   });
 
@@ -74,22 +81,20 @@ function InfoRequestView({ applicationId, request }: { applicationId: string; re
     mutationFn: () => {
       const to = new Date();
       const from = new Date(to.getFullYear(), to.getMonth() - 6, 1);
-      return documentsApi.fromLk({
-        kind: lkKind ?? 'bank_statement',
-        period_from: from.toISOString().slice(0, 10),
-        period_to: to.toISOString().slice(0, 10),
-        info_request_id: request.id,
-      });
+      return documentsApi.fromLk({ kind: lkKind ?? 'bank_statement', period_from: from.toISOString().slice(0, 10), period_to: to.toISOString().slice(0, 10), info_request_id: request.id });
     },
-    onSuccess: (doc) => setDocIds((ids) => [...ids, doc.id]),
+    onSuccess: (doc) => {
+      setDocIds((ids) => [...ids, doc.id]);
+      setMode(null);
+    },
     onError: (e) => setError(errorText(e)),
   });
 
   const respond = useMutation({
-    mutationFn: () => infoRequestsApi.respond(applicationId, request.id, { document_ids: docIds, comment: comment.trim() || undefined }),
+    mutationFn: () => infoRequestsApi.respond(app.id, request.id, { document_ids: docIds, comment: comment.trim() || undefined }),
     onSuccess: () => {
-      invalidateApplication(applicationId);
-      navigate(`/applications/${applicationId}`);
+      invalidateApplication(app.id);
+      navigate(`/applications/${app.id}`);
     },
     onError: (e) => setError(errorText(e)),
   });
@@ -99,170 +104,185 @@ function InfoRequestView({ applicationId, request }: { applicationId: string; re
   const pickable = (companyDocs.data ?? []).filter((d) => !docIds.includes(d.id) && d.status !== 'rejected');
 
   return (
-    <div>
-      <PageHeader
-        title='Запрос банка'
-        subtitle={`Создан ${formatDateTime(request.created_at)}${request.due_at ? `, ответить до ${formatDate(request.due_at)}` : ''}`}
+    <div className={r.page}>
+      <PageHead
+        title={`Заявка ${appNo(app.number)} · Нужен документ`}
+        subtitle={`${app.product.name} · ${formatMoney(app.approved_amount ?? app.requested_amount)} · ${formatMonths(app.approved_term_months ?? app.requested_term_months)}`}
         right={
-          task?.available_actions.includes('task.reassign') ? (
-            <Button view='secondary' size={40} onClick={() => setReassignOpen(true)}>
-              Передать
-            </Button>
-          ) : undefined
+          <TextLink arrow onClick={() => navigate(`/applications/${app.id}`)}>
+            К карточке заявки
+          </TextLink>
         }
       />
-
       <Stack gap={16}>
-        <Card>
-          <Stack gap={12}>
-            <Typography.Title tag='h2' view='small' weight='bold'>
-              {request.question}
-            </Typography.Title>
-            {request.purpose_text && <Text secondary>Для чего: {request.purpose_text}</Text>}
-            <Row gap={8}>
-              {requestedTitles.map((t) => (
-                <SmallTag key={t} tone='info'>
-                  {t}
-                </SmallTag>
-              ))}
-            </Row>
-          </Stack>
-        </Card>
+        <section className={r.request}>
+          <Pill tone='yellow' caps small>
+            Запрос банка
+          </Pill>
+          <h2 className={r.question}>{request.question}</h2>
+          {request.purpose_text && <div>Нужна, чтобы {request.purpose_text.replace(/^для чего:\s*/i, '').replace(/^чтобы\s*/i, '')}.</div>}
+          <div className={r.muted}>
+            Создан {formatShortDateTime(request.created_at)}
+            {request.due_at ? ` · предоставить до ${formatLongDate(request.due_at)}` : ''}
+          </div>
+        </section>
 
-        {request.status !== 'open' && request.response ? (
-          <Note tone='positive' title={`Ответ отправлен ${formatDateTime(request.response.answered_at)}`}>
-            {request.response.answered_by.name}
-            {request.response.comment ? `: ${request.response.comment}` : ''}. Документов: {request.response.document_ids.length}
-          </Note>
+        {!open && request.response ? (
+          <section className={r.answered}>
+            <b>Ответ отправлен {formatShortDateTime(request.response.answered_at)}</b>
+            <div className={r.muted}>
+              {request.response.answered_by.name}
+              {request.response.comment ? `: ${request.response.comment}` : ''}. Документов: {request.response.document_ids.length}
+            </div>
+          </section>
         ) : (
           <>
-            <div className={s.grid2}>
-              <Card>
-                <CardTitle right={<FieldTag kind='lk' />}>Взять из Альфа-Бизнеса или загруженных</CardTitle>
-                <Stack gap={12}>
-                  <Text small secondary>
-                    {request.lk_available ? 'Сформируем документ по данным вашего счёта, загружать ничего не нужно' : 'Выберите документ, который уже загружен в кабинет'}
-                  </Text>
-                  <Row gap={8}>
-                    {request.lk_available && (
-                      <Button view='primary' size={40} onClick={() => fromLk.mutate()} loading={fromLk.isPending} disabled={!canRespond}>
-                        Взять из Альфа-Бизнеса
-                      </Button>
-                    )}
-                    <Button view='secondary' size={40} onClick={() => setPickOpen(true)} disabled={!canRespond || !pickable.length}>
-                      Выбрать из загруженных
-                    </Button>
-                  </Row>
-                </Stack>
-              </Card>
-              <Card>
-                <CardTitle>Загрузить новый файл</CardTitle>
-                <FileDrop
-                  type={request.requested_document_types.length === 1 ? types.data?.find((t) => t.code === request.requested_document_types[0]) : undefined}
-                  onFile={(f) => upload.mutate(f)}
-                  disabled={!canRespond || upload.isPending}
-                />
-              </Card>
+            <div>
+              <h3 className={r.label}>Документ</h3>
+              <div className={r.choices}>
+                <button type='button' className={r.choice} disabled={!canRespond} onClick={() => setMode('pick')}>
+                  <DocumentLinesMIcon />
+                  Выбрать из документов компании
+                </button>
+                <button type='button' className={r.choice} disabled={!canRespond} onClick={() => setMode('upload')}>
+                  <ArrowUpMIcon />
+                  Загрузить новый файл
+                </button>
+              </div>
+              <div className={r.muted} style={{ marginTop: 8 }}>
+                {typeInfo ? `${typeInfo.accepted_formats.join(', ').toUpperCase()} · до ${typeInfo.max_size_mb} МБ` : 'PDF, XLSX или CSV · до 10 МБ'}
+              </div>
             </div>
 
-            {loaded.length > 0 && (
-              <Card>
-                <CardTitle>Документы для ответа</CardTitle>
-                <Stack gap={16}>
-                  {loaded.map((d) => (
-                    <div key={d.id} style={{ paddingBottom: 12, borderBottom: '1px solid var(--color-light-bg-tertiary, #e7e8ea)' }}>
-                      <Row justify='space-between' gap={8}>
-                        <div>
-                          <Text medium tag='div'>
-                            {d.title}
-                          </Text>
-                          <Text small secondary tag='div'>
-                            {d.file_name} · {formatFileSize(d.size_bytes)}
-                          </Text>
+            {loaded.length === 0 ? (
+              <DashedArea icon={DocumentMIcon} title='Файл ещё не выбран' text='Выберите сохранённый документ или загрузите новый' />
+            ) : (
+              <Stack gap={10}>
+                {loaded.map((d) => (
+                  <section key={d.id} className={kit.box} style={{ padding: 16 }}>
+                    <div className={r.file}>
+                      <PdfIcon name={d.file_name} />
+                      <div style={{ flex: 1 }}>
+                        <b>{d.file_name}</b>
+                        <div className={r.muted}>
+                          {formatFileSize(d.size_bytes)} · {d.origin === 'alfa_lk' ? 'из Альфа-Бизнеса' : 'загружен сейчас'}
                         </div>
-                        <Button view='transparent' size={32} onClick={() => setDocIds(docIds.filter((x) => x !== d.id))}>
-                          Убрать
-                        </Button>
-                      </Row>
-                      <div style={{ marginTop: 10 }}>
-                        <DocumentAnalysisView doc={d} />
                       </div>
+                      <TextLink tone='muted' onClick={() => setDocIds(docIds.filter((x) => x !== d.id))}>
+                        Убрать
+                      </TextLink>
                     </div>
-                  ))}
-                </Stack>
-              </Card>
+                    <div style={{ marginTop: 12 }}>
+                      <DocumentAnalysisView doc={d} />
+                    </div>
+                  </section>
+                ))}
+              </Stack>
             )}
 
-            <Card>
-              <Stack gap={16}>
-                <Textarea
-                  label='Комментарий для банка'
-                  block
-                  minRows={2}
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  rightAddons={<FieldTag kind='situational' />}
-                />
-                {error && <Note tone='negative'>{error}</Note>}
-                <Row gap={12}>
-                  <Button
-                    view='primary'
-                    size={56}
-                    onClick={() => respond.mutate()}
-                    loading={respond.isPending}
-                    disabled={!canRespond || analyzing || (!docIds.length && !comment.trim())}
-                  >
-                    Отправить ответ
-                  </Button>
-                  {analyzing && (
-                    <Text small secondary>
-                      Дождитесь окончания проверки документа
-                    </Text>
-                  )}
-                </Row>
-              </Stack>
-            </Card>
+            <section className={r.owner}>
+              <UserMIcon className={r.ownerIcon} />
+              <span style={{ flex: 1 }}>
+                Ответственный: {task?.assignee ? `${task.assignee.name}${isMine ? ' (вы)' : ''}` : 'вы'}
+              </span>
+              {task?.available_actions.includes('task.reassign') && (
+                <Btn variant='outline' size='m' onClick={() => setMode('assign')}>
+                  Назначить сотруднику
+                </Btn>
+              )}
+            </section>
+
+            <div>
+              <button type='button' className={r.commentToggle} onClick={() => setCommentOpen((v) => !v)}>
+                <ChevronDownMIcon style={{ width: 18, height: 18, transform: commentOpen ? 'rotate(180deg)' : undefined }} />
+                Добавить комментарий для банка
+              </button>
+              {commentOpen && (
+                <div style={{ marginTop: 10 }}>
+                  <TextArea value={comment} onChange={setComment} placeholder='Комментарий для банка' />
+                </div>
+              )}
+            </div>
+            {error && <div style={{ color: 'var(--a-red)' }}>{error}</div>}
           </>
         )}
+
+        <div className={r.footer}>
+          <div>
+            <div className={r.muted}>После отправки ответа заявка вернётся на рассмотрение</div>
+            <div style={{ marginTop: 8 }}>
+              <TextLink tone='blue' onClick={() => navigate('/applications')}>
+                ← Вернуться к заявкам
+              </TextLink>
+            </div>
+          </div>
+          {open && (
+            <div style={{ textAlign: 'center' }}>
+              <Btn size='l' className={r.send} disabled={!canRespond || analyzing || (!docIds.length && !comment.trim())} loading={respond.isPending} onClick={() => respond.mutate()}>
+                Отправить ответ
+              </Btn>
+              <div className={r.muted} style={{ marginTop: 6 }}>
+                {!docIds.length ? 'Сначала добавьте документ' : analyzing ? 'Дождитесь окончания проверки' : ' '}
+              </div>
+            </div>
+          )}
+        </div>
       </Stack>
 
-      <Dialog open={pickOpen} onClose={() => setPickOpen(false)} title='Выбрать документ'>
-        <Stack gap={8}>
-          {pickable.map((d) => (
-            <div key={d.id} className={s.personRow}>
-              <div className={s.grow}>
-                <Text medium tag='div'>
-                  {d.title}
-                </Text>
-                <Text small secondary tag='div'>
-                  {d.file_name} · {formatDate(d.uploaded_at)}
-                </Text>
+      {mode === 'upload' && (
+        <Dialog open onClose={() => setMode(null)} title='Загрузить новый файл' subtitle={typeInfo?.title}>
+          <FileDrop type={typeInfo} onFile={(f) => upload.mutate(f)} disabled={upload.isPending} />
+        </Dialog>
+      )}
+      {mode === 'pick' && (
+        <Dialog open onClose={() => setMode(null)} title='Документы компании' subtitle='Выберите сохранённый документ'>
+          <Stack gap={8}>
+            {request.lk_available && (
+              <div className={r.pick} style={{ background: 'var(--a-green-soft)' }}>
+                <IconCircle icon={DocumentLinesMIcon} style={{ background: '#fff' }} />
+                <div style={{ flex: 1 }}>
+                  <b>Сформировать из Альфа-Бизнеса</b>
+                  <div className={r.muted}>Возьмём данные вашего счёта, загружать ничего не нужно</div>
+                </div>
+                <Btn size='m' loading={fromLk.isPending} onClick={() => fromLk.mutate()}>
+                  Сформировать
+                </Btn>
               </div>
-              <Button
-                view='secondary'
-                size={32}
-                onClick={() => {
-                  setDocIds([...docIds, d.id]);
-                  setPickOpen(false);
-                }}
-              >
-                Выбрать
-              </Button>
-            </div>
-          ))}
-        </Stack>
-      </Dialog>
-
-      {task && (
-        <MemberPicker
-          open={reassignOpen}
-          subtitle={task.title}
+            )}
+            {pickable.map((d) => (
+              <div key={d.id} className={r.pick}>
+                <PdfIcon name={d.file_name} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <b>{d.title}</b>
+                  <div className={r.muted}>
+                    {d.file_name} · {formatShortDateTime(d.uploaded_at)}
+                  </div>
+                </div>
+                <Btn
+                  variant='outline'
+                  size='m'
+                  onClick={() => {
+                    setDocIds([...docIds, d.id]);
+                    setMode(null);
+                  }}
+                >
+                  Выбрать
+                </Btn>
+              </div>
+            ))}
+          </Stack>
+        </Dialog>
+      )}
+      {mode === 'assign' && task && (
+        <AssignDialog
+          taskTitle={request.question}
+          taskSubtitle={`Заявка ${appNo(app.number)}`}
           permission='upload_documents'
           excludeUserId={home.id}
-          onClose={() => setReassignOpen(false)}
-          onSelect={async (m) => {
+          onClose={() => setMode(null)}
+          onAssign={async (m) => {
             await tasksApi.reassign(task.id, m.id);
-            invalidateApplication(applicationId);
+            invalidateApplication(app.id);
             navigate('/home');
           }}
         />

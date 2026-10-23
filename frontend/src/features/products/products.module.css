@@ -1,14 +1,236 @@
-.card {
-  display: flex;
-  flex-direction: column;
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: 24px;
+  align-items: start;
 }
 
-.icon {
+.listHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.listTitle {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.option {
+  padding: 18px 22px 12px;
+  border: 1px solid var(--a-border);
+  border-radius: var(--a-radius);
+  background: #fff;
+}
+
+.optionSelected {
+  border: 2px solid var(--a-red);
+  background: linear-gradient(180deg, #fff3f2 0%, #fff 100%);
+}
+
+.optionTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.optionTitle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 700;
+}
+
+.fictional {
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: var(--a-bg-soft);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--a-text-2);
+}
+
+.optionSub {
+  margin-top: 4px;
+  font-size: 16px;
+  color: var(--a-text-2);
+}
+
+.chosen {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--a-red);
+}
+
+.chosen svg {
+  width: 22px;
+  height: 22px;
+}
+
+.radio {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border: 1.5px solid #b5b9bf;
   border-radius: 50%;
-  background: var(--color-light-bg-secondary, #f2f3f5);
+  background: #fff;
+  cursor: pointer;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  justify-content: start;
+  margin-top: 16px;
+}
+
+.facts div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 20px;
+  border-left: 1px solid var(--a-border);
+}
+
+.facts div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.facts b {
+  font-size: 17px;
+  white-space: nowrap;
+}
+
+.facts span {
+  font-size: 13px;
+  color: var(--a-text-2);
+}
+
+.optionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 6px;
+}
+
+.optionMeta {
+  font-size: 14px;
+  color: var(--a-text-2);
+}
+
+.more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.more svg {
+  width: 18px;
+  height: 18px;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0 6px;
+  font-size: 14px;
+}
+
+.muted {
+  color: var(--a-text-2);
+}
+
+.calc {
+  position: sticky;
+  top: 88px;
+}
+
+.calcTitle {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.calcProduct {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.calcSection {
+  margin: 18px 0 12px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.calcRows {
+  margin: 18px 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--a-border);
+}
+
+.calcRows div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.calcRows dt {
+  color: var(--a-text);
+}
+
+.calcRows dd {
+  margin: 0;
+}
+
+.calcNote {
+  margin-bottom: 16px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--a-text-2);
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .calc {
+    position: static;
+  }
+}
+
+@media (max-width: 767px) {
+  .facts {
+    grid-template-columns: 1fr 1fr;
+    row-gap: 12px;
+  }
+  .facts div:nth-child(odd) {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .optionRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }

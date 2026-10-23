@@ -1,142 +1,222 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button } from '@alfalab/core-components/button';
-import { Typography } from '@alfalab/core-components/typography';
 import { CheckmarkCircleMIcon } from '@alfalab/icons-glyph/CheckmarkCircleMIcon';
+import { DocumentMIcon } from '@alfalab/icons-glyph/DocumentMIcon';
+import { DownloadMIcon } from '@alfalab/icons-glyph/DownloadMIcon';
 
 import { useLoan } from '@/features/loans/hooks';
 import type { Loan } from '@/features/loans/types';
-import { formatDate, formatMoney, formatPercent } from '@/shared/lib/format';
-import { Card, CardTitle, InfoRow, InfoRows, PageHeader, QueryGate, SkeletonLines, Stack, Text, uiStyles as s } from '@/shared/ui';
+import { ContractMetrics } from '@/features/signing/screens/SigningScreen';
+import { requestFile } from '@/shared/api/client';
+import { errorText } from '@/shared/api/query';
+import { formatLongDate, formatMoney, formatMonths, formatNumericDate, formatPercent, plural } from '@/shared/lib/format';
+import { Accordion, Btn, Dialog, Metrics, PageHead, Panel, QueryGate, Stack, Tabs, TextLink, kit } from '@/shared/ui';
 
-import styles from '../../signing/signing.module.css';
+import l from '../loans.module.css';
 
 export function LoanScreen() {
   const { id = '' } = useParams();
   const loan = useLoan(id);
-  return <QueryGate query={loan}>{(data) => <LoanView loan={data} />}</QueryGate>;
+  return <QueryGate query={loan}>{(data) => <Issued loan={data} />}</QueryGate>;
 }
 
-function LoanView({ loan }: { loan: Loan }) {
+export function ScheduleScreen() {
+  const { id = '' } = useParams();
+  const loan = useLoan(id);
+  return <QueryGate query={loan}>{(data) => <Schedule loan={data} />}</QueryGate>;
+}
+
+function useContract(loan: Loan) {
+  const [preview, setPreview] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const open = async () => {
+    if (!loan.application_id) return;
+    try {
+      const blob = await requestFile(`/documents/sign-${loan.application_id}-contract/file`);
+      setPreview(await blob.text());
+    } catch (e) {
+      setError(errorText(e));
+    }
+  };
+  const dialog = preview ? (
+    <Dialog open onClose={() => setPreview(null)} title='Кредитный договор' size={800}>
+      <pre className={l.preview}>{preview}</pre>
+    </Dialog>
+  ) : null;
+  return { open, dialog, error, available: !!loan.application_id };
+}
+
+function Issued({ loan }: { loan: Loan }) {
   const navigate = useNavigate();
-  const [full, setFull] = useState(false);
-  const rows = full ? loan.schedule : loan.schedule.slice(0, 3);
+  const contract = useContract(loan);
+  const issued = loan.source === 'system';
+  const payments = loan.schedule.slice(0, 3);
 
   return (
-    <div>
-      <PageHeader
-        title={loan.product.name}
-        subtitle={loan.source === 'alfa_lk' ? 'Кредит из Альфа-Бизнеса' : 'Выдан по заявке в кабинете'}
+    <div className={l.page}>
+      <PageHead
+        back={{ label: 'Кредитование', to: '/home' }}
+        title={
+          issued ? (
+            <span className={l.titleRow}>
+              <CheckmarkCircleMIcon className={l.ok} /> {formatMoney(loan.amount)} зачислены на ваш счёт
+            </span>
+          ) : (
+            loan.product.name
+          )
+        }
+        subtitle={`${loan.product.name} · ${formatMonths(loan.term_months)} · ${formatPercent(loan.rate_percent, 0)} годовых${issued ? ' · выдача смоделирована' : ' · кредит из Альфа-Бизнеса'}`}
         right={
-          <Button view='secondary' size={40} onClick={() => navigate('/home')}>
-            В кабинет
-          </Button>
+          contract.available ? (
+            <Btn variant='outline' size='l' onClick={contract.open}>
+              Открыть договор
+            </Btn>
+          ) : undefined
         }
       />
       <Stack gap={16}>
-        {loan.source === 'system' && (
-          <div className={styles.issued}>
-            <CheckmarkCircleMIcon className={styles.issuedIcon} />
-            <div>
-              <Typography.Title tag='h2' view='small' weight='bold'>
-                {formatMoney(loan.amount)} зачислены на ваш счёт
-              </Typography.Title>
-              <Text secondary>Счёт {loan.issued_to_account}. Выдача смоделирована, реальных операций нет</Text>
+        <Panel>
+          <div className={l.section}>Условия договора</div>
+          <ContractMetrics amount={loan.amount} term={loan.term_months} payment={loan.next_payment?.amount ?? loan.schedule[0]?.payment ?? { value: 0, currency: 'RUB' }} overpayment={loan.overpayment_total} rate={loan.rate_percent} />
+        </Panel>
+        <section className={kit.box}>
+          <h2 className={kit.boxTitle} style={{ marginBottom: 6 }}>
+            Ближайшие платежи
+          </h2>
+          {payments.map((p) => (
+            <div key={p.n} className={l.payment}>
+              <span>{formatNumericDate(p.date)}</span>
+              <b>{formatMoney(p.payment)}</b>
             </div>
+          ))}
+          <div className={l.paymentFoot}>
+            <span>Платёж спишется автоматически с расчётного счёта. Напомним в кабинете за 3 дня.</span>
+            <TextLink underline onClick={() => navigate(`/loans/${loan.id}/schedule`)}>
+              Погасить досрочно
+            </TextLink>
           </div>
-        )}
-
-        <div className={s.grid3}>
-          <Card compact>
-            <Text small secondary tag='div'>
-              Следующий платёж
-            </Text>
-            <Typography.Title tag='div' view='xsmall' weight='bold'>
-              {loan.next_payment ? formatMoney(loan.next_payment.amount) : 'нет'}
-            </Typography.Title>
-            {loan.next_payment && (
-              <Text small secondary tag='div'>
-                {formatDate(loan.next_payment.date)}
-              </Text>
-            )}
-          </Card>
-          <Card compact>
-            <Text small secondary tag='div'>
-              Осталось погасить
-            </Text>
-            <Typography.Title tag='div' view='xsmall' weight='bold'>
-              {formatMoney(loan.balance)}
-            </Typography.Title>
-            <Text small secondary tag='div'>
-              из {formatMoney(loan.amount)}
-            </Text>
-          </Card>
-          <Card compact>
-            <Text small secondary tag='div'>
-              Переплата за весь срок
-            </Text>
-            <Typography.Title tag='div' view='xsmall' weight='bold'>
-              {formatMoney(loan.overpayment_total)}
-            </Typography.Title>
-            <Text small secondary tag='div'>
-              ставка {formatPercent(loan.rate_percent)}, {loan.term_months} мес.
-            </Text>
-          </Card>
+        </section>
+        <div className={l.actions}>
+          <Btn variant='outline' size='l' onClick={() => navigate(`/loans/${loan.id}/schedule`)}>
+            График платежей
+          </Btn>
+          <Btn size='l' onClick={() => navigate('/home')}>
+            В кабинет
+          </Btn>
         </div>
-
-        <Card>
-          <CardTitle
-            right={
-              loan.schedule.length > 3 ? (
-                <Button view='transparent' size={32} onClick={() => setFull((v) => !v)}>
-                  {full ? 'Свернуть' : 'График платежей'}
-                </Button>
-              ) : undefined
-            }
-          >
-            {full ? 'График платежей' : 'Ближайшие платежи'}
-          </CardTitle>
-          {loan.schedule.length === 0 ? (
-            <SkeletonLines lines={3} />
-          ) : (
-            <div className={s.tableScroll}>
-              <table className={s.table}>
-                <thead>
-                  <tr>
-                    <th>№</th>
-                    <th>Дата</th>
-                    <th className={s.right}>Платёж</th>
-                    <th className={s.right}>Основной долг</th>
-                    <th className={s.right}>Проценты</th>
-                    <th className={s.right}>Остаток</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r) => (
-                    <tr key={r.n}>
-                      <td>{r.n}</td>
-                      <td>{formatDate(r.date)}</td>
-                      <td className={s.right}>
-                        <b>{formatMoney(r.payment)}</b>
-                      </td>
-                      <td className={s.right}>{formatMoney(r.principal)}</td>
-                      <td className={s.right}>{formatMoney(r.interest)}</td>
-                      <td className={s.right}>{formatMoney(r.balance)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
-
-        <Card compact>
-          <InfoRows>
-            <InfoRow label='Счёт зачисления'>{loan.issued_to_account}</InfoRow>
-            <InfoRow label='Сумма кредита'>{formatMoney(loan.amount)}</InfoRow>
-          </InfoRows>
-        </Card>
+        <div className={l.muted}>Кредит уже появился в разделе «Действующие кредиты».</div>
+        {contract.error && <div style={{ color: 'var(--a-red)' }}>{contract.error}</div>}
       </Stack>
+      {contract.dialog}
+    </div>
+  );
+}
+
+function Schedule({ loan }: { loan: Loan }) {
+  const navigate = useNavigate();
+  const contract = useContract(loan);
+  const years = [...new Set(loan.schedule.map((r) => r.date.slice(0, 4)))];
+  const [year, setYear] = useState(years[0] ?? '');
+  const rows = loan.schedule.filter((r) => r.date.startsWith(year));
+  const next = loan.next_payment ?? (loan.schedule[0] ? { date: loan.schedule[0].date, amount: loan.schedule[0].payment } : null);
+  const total = { value: loan.amount.value + loan.overpayment_total.value, currency: 'RUB' as const };
+  const kop = (v: { value: number }) => formatMoney(v as never, { kopecks: true });
+
+  const download = () => {
+    const csv = ['Дата;Платёж;Основной долг;Проценты;Остаток', ...loan.schedule.map((r) => [formatNumericDate(r.date), r.payment.value / 100, r.principal.value / 100, r.interest.value / 100, r.balance.value / 100].join(';'))].join('\n');
+    const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `График платежей ${loan.product.name}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className={l.page}>
+      <PageHead back={{ label: 'К кредиту', to: `/loans/${loan.id}` }} title='График платежей' subtitle={loan.product.name} />
+      <Stack gap={16}>
+        <Panel>
+          <Metrics
+            small
+            items={[
+              { value: formatMoney(loan.amount), label: 'Сумма кредита' },
+              { value: formatMonths(loan.term_months), label: 'Срок' },
+              { value: `${formatPercent(loan.rate_percent, 0)} годовых`, label: 'Ставка' },
+              { value: `≈ ${formatMoney(total)}`, label: 'Всего к возврату' },
+            ]}
+          />
+        </Panel>
+        <div className={l.muted}>Демонстрационный график: расчёт по месяцам, без комиссий.</div>
+        {next && (
+          <Panel tone='green'>
+            <div className={l.nextRow}>
+              <div>
+                <div className={l.muted}>Ближайший платёж</div>
+                <div className={l.next}>
+                  {formatLongDate(next.date)} · {formatMoney(next.amount)}
+                </div>
+              </div>
+              <div className={l.nextSide}>
+                <b>Будет списан с расчётного счёта</b>
+                <div className={l.muted}>Обеспечьте нужную сумму к дате платежа.</div>
+              </div>
+            </div>
+          </Panel>
+        )}
+        <div className={l.yearRow}>
+          <Tabs value={year} onChange={setYear} items={years.map((y) => ({ id: y, label: y }))} />
+          <Btn variant='outline' size='m' leftAddons={<DownloadMIcon style={{ width: 18, height: 18 }} />} onClick={download}>
+            Скачать график
+          </Btn>
+        </div>
+        <div className={kit.tableWrap}>
+          <table className={kit.table}>
+            <thead>
+              <tr>
+                <th>Дата</th>
+                <th>Платёж</th>
+                <th>Основной долг</th>
+                <th>Проценты</th>
+                <th>Остаток долга</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.n}>
+                  <td>{formatNumericDate(r.date)}</td>
+                  <td>{kop(r.payment)}</td>
+                  <td>{kop(r.principal)}</td>
+                  <td>{kop(r.interest)}</td>
+                  <td>{kop(r.balance)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className={l.muted}>
+          Показаны {rows.length} {plural(rows.length, 'платёж', 'платежа', 'платежей')} за {year} год · всего {loan.schedule.length} {plural(loan.schedule.length, 'платёж', 'платежа', 'платежей')}.
+        </div>
+        <Accordion title='Из чего складывается платёж'>
+          <div className={l.muted}>
+            Каждый платёж одинаковый (аннуитетный). В начале срока большая часть уходит на проценты, к концу на основной долг. Проценты начисляются на остаток долга по ставке {formatPercent(loan.rate_percent, 0)} годовых.
+          </div>
+        </Accordion>
+        <div className={l.muted}>Последний платёж может отличаться из-за округления. Точный график указан в договоре.</div>
+        <div className={l.footer}>
+          {contract.available ? (
+            <Btn variant='outline' size='l' leftAddons={<DocumentMIcon style={{ width: 18, height: 18 }} />} onClick={contract.open}>
+              Открыть договор
+            </Btn>
+          ) : (
+            <span />
+          )}
+          <TextLink arrow onClick={() => navigate(`/loans/${loan.id}`)}>
+            Вернуться к кредиту
+          </TextLink>
+        </div>
+      </Stack>
+      {contract.dialog}
     </div>
   );
 }

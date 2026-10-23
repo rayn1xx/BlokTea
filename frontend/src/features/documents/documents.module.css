@@ -1,0 +1,147 @@
+.headRight {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.bannerOk,
+.bannerWarn {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 22px;
+  border-radius: var(--a-radius);
+}
+
+.bannerOk {
+  background: var(--a-green-soft);
+  border: 1px solid var(--a-green-border);
+}
+
+.bannerWarn {
+  background: var(--a-yellow-soft);
+  border: 1px solid var(--a-yellow-border);
+}
+
+.bannerIconOk,
+.bannerIconWarn {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  color: var(--a-green);
+}
+
+.bannerIconWarn {
+  color: #e08a00;
+}
+
+.muted {
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--a-text-2);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.docCell {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.rowActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.titleRow {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.history {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--a-border);
+}
+
+.pickRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid var(--a-border);
+  border-radius: 10px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 20px;
+  align-items: start;
+}
+
+.sideCard {
+  padding: 16px;
+  border: 1px solid var(--a-border);
+  border-radius: var(--a-radius);
+}
+
+.sideTitle {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.need {
+  padding: 12px;
+  border: 1px solid var(--a-border);
+  border-radius: 10px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.check svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .history {
+    grid-template-columns: 1fr;
+  }
+  .footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

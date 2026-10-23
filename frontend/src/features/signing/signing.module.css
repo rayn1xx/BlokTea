@@ -1,53 +1,118 @@
-.signers {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.page {
+  max-width: 900px;
+}
+
+.section {
+  margin-bottom: 12px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.progressHead {
+  margin-bottom: 8px;
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .signer {
   display: flex;
   align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border: 1px solid var(--a-border);
+  border-radius: var(--a-radius);
+  font-size: 16px;
+}
+
+.signRow {
+  display: flex;
+  gap: 16px;
+}
+
+.code {
+  flex: 0 1 320px;
+}
+
+.signButton {
+  min-width: 180px;
+}
+
+.error {
+  margin-top: 8px;
+  color: var(--a-red);
+}
+
+.muted {
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--a-text-2);
+}
+
+.ruleCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--a-border);
+  border-radius: var(--a-radius);
+}
+
+.verified {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--a-green);
+}
+
+.verified svg {
+  width: 18px;
+  height: 18px;
+}
+
+.infoBox {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--a-bg-soft);
+  font-size: 14px;
+}
+
+.infoBox svg {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: var(--a-text-2);
+}
+
+.rulesFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
-  padding: 14px 0;
-  border-top: 1px solid var(--color-light-bg-tertiary, #e7e8ea);
 }
 
-.signer:first-child {
-  border-top: 0;
-  padding-top: 0;
-}
-
-.doc {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 12px;
-  border: 1px solid var(--color-light-bg-tertiary, #e7e8ea);
-  border-radius: 14px;
-  background: none;
+.preview {
+  min-height: 300px;
+  padding: 20px;
+  border-radius: 12px;
+  background: var(--a-bg-soft);
+  white-space: pre-wrap;
   font: inherit;
-  text-align: left;
-  cursor: pointer;
+  font-size: 14px;
 }
 
-.doc:hover {
-  border-color: var(--color-light-graphic-primary, #212124);
-}
-
-.issued {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 24px;
-  border-radius: 20px;
-  background: var(--color-light-bg-positive-muted, #dff8e5);
-}
-
-.issuedIcon {
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  color: var(--color-light-graphic-positive, #0cc44d);
+@media (max-width: 767px) {
+  .signRow {
+    flex-direction: column;
+  }
+  .code {
+    flex: 1 1 auto;
+  }
+  .signer {
+    flex-wrap: wrap;
+  }
 }

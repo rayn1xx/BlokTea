@@ -146,12 +146,4 @@ export function InfoRow({ label, children }: { label: ReactNode; children: React
   );
 }
 
-export function LinkButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
-  return (
-    <button type='button' className={s.linkButton} onClick={onClick}>
-      {children}
-    </button>
-  );
-}
-
 export { s as uiStyles };
