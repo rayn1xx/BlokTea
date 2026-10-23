@@ -4,7 +4,6 @@ import { CheckmarkCircleMIcon } from '@alfalab/icons-glyph/CheckmarkCircleMIcon'
 import { ClockLineMIcon } from '@alfalab/icons-glyph/ClockLineMIcon';
 import { InformationCircleLineMIcon } from '@alfalab/icons-glyph/InformationCircleLineMIcon';
 
-import { isDemoMode } from '@/app/env';
 import { useApplication } from '@/features/applications/hooks';
 import type { ApplicationDetail } from '@/features/applications/types';
 import { useLoans } from '@/features/loans/hooks';
@@ -204,7 +203,7 @@ function SigningView({ app, state }: { app: ApplicationDetail; state: SigningSta
 
         {state.can_current_user_sign && (
           <div className={g.muted}>
-            {isDemoMode() && challenge?.demo_code ? `Демо-код: ${challenge.demo_code}. ` : ''}В реальном продукте код приходит в кабинет, без SMS.
+            {challenge?.demo_code ? <>Ваш код подтверждения: <b>{challenge.demo_code}</b>. </> : null}Код приходит в кабинет, без SMS.
           </div>
         )}
         <div>

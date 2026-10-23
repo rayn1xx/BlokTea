@@ -10,7 +10,6 @@ export default defineConfig(({ mode }) => {
 
     resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
 
-    envPrefix: ['VITE_', 'USE_MOCKS', 'DEMO_MODE'],
     server: {
       host: '127.0.0.1',
       port: 5173,

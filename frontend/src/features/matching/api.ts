@@ -6,7 +6,7 @@ export const matchingApi = {
   create: () => request<MatchingSession>('/matching-sessions', { method: 'POST' }),
 
   get: (id: string) =>
-    request<MatchingSession>(`/matching-sessions/${id}`, { method: 'PATCH', body: {} }),
+    request<MatchingSession>(`/matching-sessions/${id}`),
   patch: (id: string, body: MatchingSessionPatch) =>
     request<MatchingSession>(`/matching-sessions/${id}`, { method: 'PATCH', body }),
   recommend: (id: string) =>

@@ -21,27 +21,25 @@ import { LoanScreen, ScheduleScreen } from '@/features/loans/screens/LoanScreen'
 import { MatchingScreen } from '@/features/matching/screens/MatchingScreen';
 import { ProductsScreen } from '@/features/products/screens/ProductsScreen';
 import { BankShell, ClientShell } from '@/features/profile/components/AppShell/AppShell';
-import { DemoPanel } from '@/features/profile/components/DemoPanel/DemoPanel';
 import { RequireAccess } from '@/features/profile/components/RequireAccess';
 import { SigningScreen } from '@/features/signing/screens/SigningScreen';
 import { TeamScreen } from '@/features/team/screens/TeamScreen';
-import { getToken } from '@/shared/api/token';
+import { useSessionState } from '@/shared/api/session';
 
 function Root() {
-  return (
-    <>
-      <Outlet />
-      <DemoPanel />
-    </>
-  );
+  return <Outlet />;
 }
 
 function RequireAuth() {
-  return getToken() ? <Outlet /> : <Navigate to='/login' replace />;
+  const state = useSessionState();
+  if (state === 'checking') return null;
+  return state === 'in' ? <Outlet /> : <Navigate to='/login' replace />;
 }
 
 function GuestOnly() {
-  return getToken() ? <Navigate to='/home' replace /> : <Outlet />;
+  const state = useSessionState();
+  if (state === 'checking') return null;
+  return state === 'in' ? <Navigate to='/home' replace /> : <Outlet />;
 }
 
 export const router = createBrowserRouter([

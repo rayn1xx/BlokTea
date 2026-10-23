@@ -464,7 +464,7 @@
   text-decoration: underline;
 }
 
-.demoCode {
+.issuedCode {
   display: inline-flex;
   align-items: center;
   gap: 8px;

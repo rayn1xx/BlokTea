@@ -6,9 +6,6 @@ RUN npm ci --no-audit --no-fund
 
 COPY . .
 
-ARG USE_MOCKS=true
-ARG DEMO_MODE=true
-ENV USE_MOCKS=$USE_MOCKS DEMO_MODE=$DEMO_MODE
 RUN npm run build
 
 FROM nginx:1.27.2-alpine

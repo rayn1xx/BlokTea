@@ -1,4 +1,5 @@
 import { request } from '@/shared/api/client';
+import { resetSessionRestore } from '@/shared/api/session';
 import { clearToken, getToken } from '@/shared/api/token';
 
 import type { InviteAcceptRequest, InviteAcceptResponse, LoginRequest, TokenResponse } from './types';
@@ -15,6 +16,7 @@ export const authApi = {
     } catch {
     } finally {
       clearToken();
+      resetSessionRestore();
     }
   },
 

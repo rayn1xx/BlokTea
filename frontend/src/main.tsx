@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 
-import { isMocks } from '@/app/env';
 import { router } from '@/app/router';
 import { setSessionExpiredHandler } from '@/shared/api/client';
 import { queryClient } from '@/shared/api/query';
@@ -13,23 +12,15 @@ import '@alfalab/core-components-themes/corp.css';
 import './styles/fonts.css';
 import './styles/global.css';
 
-async function enableMocks() {
-  if (!isMocks()) return;
-  const { worker } = await import('./mocks/browser');
-  await worker.start({ onUnhandledRequest: 'bypass', quiet: true });
-}
-
 setSessionExpiredHandler(() => {
   queryClient.clear();
   void router.navigate('/login', { replace: true });
 });
 
-void enableMocks().then(() => {
-  ReactDOM.createRoot(document.getElementById('root')!).render(
-    <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-      </QueryClientProvider>
-    </React.StrictMode>,
-  );
-});
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
+  </React.StrictMode>,
+);

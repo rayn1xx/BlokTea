@@ -2,7 +2,6 @@ import { type ReactNode, useEffect, useState } from 'react';
 import { Button } from '@alfalab/core-components/button';
 import { Input } from '@alfalab/core-components/input';
 
-import { isDemoMode } from '@/app/env';
 import { errorText } from '@/shared/api/query';
 
 import { Dialog } from './Dialog';
@@ -107,9 +106,9 @@ export function CodeConfirm({
             rightAddons={<FieldTag kind='required' />}
           />
         </form>
-        {isDemoMode() && challenge?.demo_code && (
-          <span className={s.demoCode}>
-            <Text small>Демо-режим, код:</Text>
+        {challenge?.demo_code && (
+          <span className={s.issuedCode}>
+            <Text small>Ваш код:</Text>
             <Text bold>{challenge.demo_code}</Text>
           </span>
         )}
