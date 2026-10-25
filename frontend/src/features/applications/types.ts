@@ -78,6 +78,29 @@ export type StatusText = {
   due_at: string | null;
 };
 
+export type CallNote = {
+  id: string;
+  stage: ApplicationStatus;
+  stage_title: string;
+  called_at: string;
+  duration_minutes: number | null;
+  topic: string;
+  summary: string;
+  agreements: string[];
+  next_step: string | null;
+  next_step_due: string | null;
+  author_name: string;
+};
+
+export type CallNoteCreate = {
+  topic: string;
+  summary: string;
+  agreements: string[];
+  next_step?: string;
+  next_step_due?: string;
+  duration_minutes?: number;
+};
+
 export type ApplicationDetail = ApplicationSummary & {
   purpose_code: PurposeCode;
   rate_percent: number;
@@ -89,6 +112,7 @@ export type ApplicationDetail = ApplicationSummary & {
   timeline: TimelineEvent[];
   status_text: StatusText;
   info_requests: InfoRequest[];
+  calls: CallNote[];
   decision: Decision | null;
   signing: SigningState | null;
   version: number;

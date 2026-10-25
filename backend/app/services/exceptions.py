@@ -1,6 +1,3 @@
-# доменные ошибки сервисов: слой api переводит их в HTTP-ответы
-
-
 class ServiceError(Exception):
     pass
 

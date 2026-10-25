@@ -1,5 +1,3 @@
-"""Коды подтверждения согласий и подписи (3.9): 4 цифры, 5 минут, 5 попыток, в БД только хеш."""
-
 import hashlib
 import secrets
 import uuid
@@ -34,7 +32,6 @@ def create(session: AsyncSession, *, subject: str, kind: str, application_id: uu
     challenge.code_hash = hash_code(challenge.id, code)
     session.add(challenge)
     response = {"challenge_id": str(challenge.id), "expires_at": iso(challenge.expires_at)}
-    # без SMS: в демо код показываем прямо в кабинете
     if settings.demo_mode:
         response["demo_code"] = code
     return response
@@ -50,7 +47,6 @@ async def verify(
     application_id: uuid.UUID,
     user_id: uuid.UUID,
 ) -> None:
-    """Проверяет код. Неудачная попытка сохраняется до ответа 422, поэтому коммитим здесь же."""
     try:
         cid = uuid.UUID(str(challenge_id))
     except ValueError:

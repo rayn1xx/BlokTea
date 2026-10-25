@@ -1,0 +1,34 @@
+.label {
+  margin-bottom: 8px;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+.optional {
+  margin-left: 8px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--a-text-2);
+}
+
+.hint,
+.error {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 17px;
+}
+
+.hint {
+  color: var(--a-text-2);
+}
+
+.error {
+  color: var(--a-red);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}

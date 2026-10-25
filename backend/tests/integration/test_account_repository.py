@@ -116,7 +116,6 @@ async def test_deleting_company_deletes_its_accounts(
 
 
 async def test_balance_supports_large_and_negative_values(repo: AccountRepository, member: User) -> None:
-    # BIGINT: 10 млрд рублей в копейках не влезли бы в INTEGER
     big = make_account(user=member, current_money=1_000_000_000_000)
     debt = make_account(user=member, type=AccountType.CREDIT, current_money=-50_000)
     await add_all(repo, big, debt)

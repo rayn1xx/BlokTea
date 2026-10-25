@@ -1,0 +1,26 @@
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--a-border);
+  border-radius: var(--a-radius-control);
+}
+
+.head {
+  display: flex;
+  gap: 10px;
+}
+
+.icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  color: var(--a-text-2);
+}
+
+.muted {
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--a-text-2);
+}

@@ -1,0 +1,99 @@
+.wrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-spacing: 0;
+}
+
+.table td {
+  vertical-align: middle;
+}
+
+.table tr:last-child td {
+  border-bottom: 0;
+}
+
+.table [data-align='right'] {
+  text-align: right;
+}
+
+.boxed {
+  border-collapse: separate;
+  border: 1px solid var(--a-border);
+  border-radius: var(--a-radius);
+  overflow: hidden;
+}
+
+.boxed th {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--a-border);
+  background: var(--a-bg-side);
+  text-align: left;
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 400;
+  color: var(--a-text-2);
+}
+
+.boxed td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--a-border);
+}
+
+.plain {
+  border-collapse: collapse;
+}
+
+.plain th {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--a-border);
+  text-align: left;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--a-text-2);
+}
+
+.plain td {
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--a-border);
+}
+
+.clickable tbody tr {
+  cursor: pointer;
+}
+
+.clickable tbody tr:hover td {
+  background: var(--a-bg-soft);
+}
+
+.title {
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+.sub {
+  margin-top: 3px;
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--a-text-2);
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.text {
+  min-width: 0;
+}
+
+.cell .text {
+  flex: 1;
+}

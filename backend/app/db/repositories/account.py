@@ -11,7 +11,6 @@ class AccountRepository:
         self._session = session
 
     async def list_for_owner(self, user_id: uuid.UUID, company_id: uuid.UUID | None) -> list[Account]:
-        """Личные счета пользователя и, если передана компания, её счета."""
         owners = [Account.user_id == user_id]
         if company_id is not None:
             owners.append(Account.company_id == company_id)
@@ -19,7 +18,6 @@ class AccountRepository:
         result = await self._session.scalars(
             select(Account)
             .where(or_(*owners))
-            # основные счета первыми, затем счета компании, затем личные
             .order_by(Account.is_primary.desc(), Account.owner_type, Account.created_at, Account.id)
         )
         return list(result)

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Button } from '@alfalab/core-components/button';
 import { Input } from '@alfalab/core-components/input';
 import { Textarea } from '@alfalab/core-components/textarea';
 
@@ -13,7 +12,7 @@ import { documentsApi } from '@/features/documents/api';
 import { errorText, fieldErrors, queryClient } from '@/shared/api/query';
 import { formatMoney, formatPercent } from '@/shared/lib/format';
 import type { Money } from '@/shared/types/common';
-import { Card, CardTitle, Chips, DateField, FieldGroup, FieldLabel, FieldTag, InfoRow, InfoRows, MoneyInput, Note, NumberInput, PageHeader, QueryGate, SkeletonLines, Stack, Text, ToneLabel, uiStyles as s } from '@/shared/ui';
+import { Btn, Card, Chips, DateField, FieldGroup, FieldLabel, FieldTag, Grid, InfoRow, InfoRows, MoneyInput, Note, NumberInput, Options, PageHead, QueryGate, SkeletonLines, Split, Stack, Text, ToneLabel } from '@/shared/ui';
 
 type Kind = 'approve' | 'counter_offer' | 'request_info' | 'reject';
 
@@ -79,6 +78,9 @@ function DecisionForm({ app }: { app: BankApplicationDetail }) {
     },
   });
 
+  const againstScoring =
+    (kind === 'approve' && app.scoring.outcome !== 'approved') || (kind === 'reject' && app.scoring.outcome === 'approved');
+
   const validate = () => {
     const next: Record<string, string> = {};
     if (kind === 'counter_offer') {
@@ -92,6 +94,8 @@ function DecisionForm({ app }: { app: BankApplicationDetail }) {
       if (!dueAt) next.due_at = 'Укажите срок';
     }
     if (kind === 'reject' && !reasons.length) next.reason_codes = 'Выберите причину';
+    if (kind === 'reject' && reasons.includes('other') && !comment.trim()) next.comment = 'Опишите причину отказа';
+    if (!next.comment && againstScoring && !comment.trim()) next.comment = 'Решение отличается от скоринга: напишите причину';
     setErrors(next);
     return !Object.keys(next).length;
   };
@@ -106,17 +110,28 @@ function DecisionForm({ app }: { app: BankApplicationDetail }) {
 
   return (
     <div>
-      <PageHeader
+      <PageHead
         title={`Решение по заявке ${app.number}`}
         subtitle={`${app.company.company.short_name} · балл ${app.scoring.total}`}
         right={
-          <Button view='secondary' size={40} onClick={() => navigate(`/bank/applications/${app.id}`)}>
+          <Btn variant='outline' onClick={() => navigate(`/bank/applications/${app.id}`)}>
             К карточке
-          </Button>
+          </Btn>
         }
       />
-      <div className={s.mainAside}>
-        <Stack gap={16}>
+      <Split
+        aside={
+          <Card title='Что увидит клиент'>
+            {!debounced ? (
+              <Text secondary>Заполните поля, чтобы увидеть превью</Text>
+            ) : preview.isLoading ? (
+              <SkeletonLines lines={4} />
+            ) : preview.data ? (
+              <ClientPreview view={preview.data.client_view} />
+            ) : null}
+          </Card>
+        }
+      >
           <Card>
             <Stack gap={24}>
               <Chips
@@ -147,37 +162,36 @@ function DecisionForm({ app }: { app: BankApplicationDetail }) {
                     {options.isLoading ? (
                       <SkeletonLines lines={2} />
                     ) : (
-                      <div className={s.grid3}>
-                        {(options.data?.options ?? []).map((o) => (
-                          <button
-                            key={`${o.amount.value}-${o.term_months}`}
-                            type='button'
-                            className={s.personRow}
-                            style={{ border: '1px solid var(--color-light-bg-tertiary, #e7e8ea)', background: 'none', textAlign: 'left', cursor: 'pointer', font: 'inherit', flexDirection: 'column', alignItems: 'flex-start' }}
-                            onClick={() => {
-                              setAmount(o.amount);
-                              setTerm(o.term_months);
-                            }}
-                          >
-                            <Text medium>
-                              {formatMoney(o.amount)} на {o.term_months} мес.
-                            </Text>
-                            <Text small secondary>
-                              платёж {formatMoney(o.monthly_payment)}
-                            </Text>
-                            <ToneLabel tone={o.load.load_percent <= o.load.target_percent ? 'positive' : o.load.load_percent <= o.load.threshold_percent ? 'attention' : 'negative'} small>
-                              нагрузка {formatPercent(o.load.load_percent)}
-                            </ToneLabel>
-                          </button>
-                        ))}
-                      </div>
+                      <Options
+                        columns={3}
+                        radio
+                        options={(options.data?.options ?? []).map((o) => ({
+                          value: `${o.amount.value}-${o.term_months}`,
+                          label: `${formatMoney(o.amount)} на ${o.term_months} мес.`,
+                          description: (
+                            <>
+                              платёж {formatMoney(o.monthly_payment)}{' '}
+                              <ToneLabel tone={o.load.load_percent <= o.load.target_percent ? 'positive' : o.load.load_percent <= o.load.threshold_percent ? 'attention' : 'negative'} small>
+                                нагрузка {formatPercent(o.load.load_percent)}
+                              </ToneLabel>
+                            </>
+                          ),
+                        }))}
+                        value={amount && term ? `${amount.value}-${term}` : null}
+                        onChange={(v) => {
+                          const o = options.data?.options.find((x) => `${x.amount.value}-${x.term_months}` === v);
+                          if (!o) return;
+                          setAmount(o.amount);
+                          setTerm(o.term_months);
+                        }}
+                        />
                     )}
                   </FieldGroup>
-                  <div className={s.grid3}>
+                  <Grid cols={3}>
                     <MoneyInput label='Сумма' value={amount} onChange={setAmount} error={errors.amount} />
                     <NumberInput label='Срок' suffix='мес.' value={term} onChange={setTerm} error={errors.term_months} />
                     <Input label='Ставка, %' size={56} block value={rate?.toString() ?? ''} onChange={(_, { value }) => setRate(Number(value.replace(',', '.')) || null)} />
-                  </div>
+                  </Grid>
                   <FieldGroup label={<FieldLabel tag='required'>Причина</FieldLabel>} error={errors.reason_code}>
                     <Chips options={(rejection.data ?? []).map((r) => ({ value: r.code, label: r.title }))} value={reason} onChange={setReason} />
                   </FieldGroup>
@@ -235,31 +249,27 @@ function DecisionForm({ app }: { app: BankApplicationDetail }) {
               )}
 
               {kind !== 'request_info' && (
-                <Textarea label='Комментарий' block minRows={2} value={comment} onChange={(e) => setComment(e.target.value)} rightAddons={<FieldTag kind='situational' />} />
+                <Textarea
+                  label={kind === 'reject' && reasons.includes('other') ? 'Опишите причину' : againstScoring ? 'Причина отличия от скоринга' : 'Комментарий'}
+                  block
+                  minRows={2}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  error={errors.comment}
+                  rightAddons={<FieldTag kind={(kind === 'reject' && reasons.includes('other')) || againstScoring ? 'required' : 'situational'} />}
+                />
               )}
 
               {errors.form && <Note tone='negative'>{errors.form}</Note>}
 
               <div>
-                <Button view='primary' size={56} onClick={() => validate() && decide.mutate()} loading={decide.isPending}>
+                <Btn size='l' onClick={() => validate() && decide.mutate()} loading={decide.isPending}>
                   Отправить решение
-                </Button>
+                </Btn>
               </div>
             </Stack>
           </Card>
-        </Stack>
-
-        <Card>
-          <CardTitle>Что увидит клиент</CardTitle>
-          {!debounced ? (
-            <Text secondary>Заполните поля, чтобы увидеть превью</Text>
-          ) : preview.isLoading ? (
-            <SkeletonLines lines={4} />
-          ) : preview.data ? (
-            <ClientPreview view={preview.data.client_view} />
-          ) : null}
-        </Card>
-      </div>
+      </Split>
     </div>
   );
 }

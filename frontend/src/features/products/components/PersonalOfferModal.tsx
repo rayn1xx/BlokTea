@@ -11,9 +11,9 @@ import type { PreapprovedOffer } from '@/features/products/types';
 import { useCurrentHome } from '@/features/profile/components/AppShell/AppShell';
 import { errorText, invalidateApplication } from '@/shared/api/query';
 import { formatLongDate, formatMoney, formatMonths, formatPercent } from '@/shared/lib/format';
-import { Accordion, Btn, Dialog, InfoLine, Panel, Stack, TextLink } from '@/shared/ui';
+import { Accordion, Btn, Dialog, InfoLine, Panel, Stack, Text, TextLink } from '@/shared/ui';
 
-import p from './offer.module.css';
+import p from './PersonalOfferModal.module.css';
 
 const COLLATERAL_TEXT = { none: 'Не требуется', optional: 'По желанию', required: 'Требуется' };
 
@@ -99,7 +99,7 @@ export function PersonalOfferModal({ offer, onClose }: { offer: PreapprovedOffer
         <div className={p.muted} style={{ fontSize: 13 }}>
           Вы сможете проверить данные и необходимые условия перед отправкой заявки.
         </div>
-        {(error || matching.error) && <div style={{ color: 'var(--a-red)' }}>{error ?? matching.error}</div>}
+        {(error || matching.error) && <Text color='negative' tag='div'>{error ?? matching.error}</Text>}
         <Btn size='l' block onClick={() => create.mutate()} loading={create.isPending}>
           Перейти к оформлению
         </Btn>

@@ -1,0 +1,217 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.page > div:first-child {
+  margin-bottom: -8px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  border: 1px solid var(--a-border);
+  border-radius: var(--a-radius);
+  background: #fff;
+}
+
+.heroMain {
+  padding: 28px 32px;
+}
+
+.heroTitle {
+  margin: 0;
+  font-size: 28px;
+  line-height: 34px;
+  font-weight: 700;
+}
+
+.heroText {
+  max-width: 520px;
+  margin: 12px 0 0;
+  font-size: 16px;
+  line-height: 22px;
+  color: var(--a-text-2);
+}
+
+.heroActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 28px;
+  margin-top: 24px;
+}
+
+.heroButton {
+  min-width: 220px;
+}
+
+.heroOffer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  border-left: 1px solid var(--a-border);
+}
+
+.offerAmount {
+  margin-top: 8px;
+  font-size: 28px;
+  line-height: 34px;
+  font-weight: 700;
+}
+
+.muted {
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--a-text-2);
+}
+
+.error {
+  margin-top: 10px;
+  color: var(--a-red);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--a-border);
+}
+
+.rowMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.rowTitle {
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--a-text);
+}
+
+.counters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-top: 14px;
+}
+
+.counters button {
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--a-text-2);
+}
+
+.chev {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--a-text-2);
+}
+
+.loan {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid var(--a-border);
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rows li:last-child .loan,
+.rows li:last-child.row {
+  border-bottom: 0;
+}
+
+.empty {
+  padding: 18px 0;
+  font-size: 15px;
+  color: var(--a-text-2);
+}
+
+.feedGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.feedItem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--a-border);
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.feedItem:hover {
+  background: var(--a-bg-side);
+}
+
+@media (max-width: 1023px) {
+  .hero,
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .heroOffer {
+    border-left: 0;
+    border-top: 1px solid var(--a-border);
+  }
+  .feedGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .heroMain {
+    padding: 20px;
+  }
+  .heroTitle {
+    font-size: 22px;
+    line-height: 28px;
+  }
+  .heroButton {
+    width: 100%;
+  }
+  .row {
+    flex-wrap: wrap;
+  }
+  li.row > .rowMain {
+    flex-basis: 100%;
+  }
+}
+
+.others {
+  margin-top: 8px;
+}

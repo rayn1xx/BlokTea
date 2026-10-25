@@ -1,5 +1,3 @@
-"""Контрольные примеры ТЗ: платёж и нагрузка (3.1), подбор (3.2), скоринг (3.5), машина состояний (К.16)."""
-
 from datetime import date
 
 import pytest
@@ -15,7 +13,6 @@ CURRENT_PAYMENTS = 118_400_00
 
 
 def demo_months() -> list[MonthFlow]:
-    """Операции мока Альфа-Бизнеса за 10.2025-09.2026, как в сервисе данных компании."""
     result = []
     for year, month in [(2025, m) for m in range(10, 13)] + [(2026, m) for m in range(1, 10)]:
         txs = mocks_data.month_transactions(mocks_data.MASHPROM_INN, year, month)

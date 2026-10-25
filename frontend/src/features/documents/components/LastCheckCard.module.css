@@ -1,0 +1,32 @@
+.file {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.check svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+.ok {
+  color: var(--a-green);
+}
+
+.warn {
+  color: var(--a-yellow);
+}
+
+.muted {
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--a-text-2);
+}

@@ -1,0 +1,42 @@
+.bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--a-track);
+  overflow: hidden;
+}
+
+.fill {
+  width: var(--value);
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.red {
+  background: var(--a-red);
+}
+
+.green {
+  background: var(--a-green);
+}
+
+.yellow {
+  background: var(--a-yellow);
+}
+
+.steps {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 6px;
+}
+
+.step {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--a-track);
+}
+
+.stepDone {
+  background: var(--a-red);
+}

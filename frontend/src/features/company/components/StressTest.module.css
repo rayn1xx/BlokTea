@@ -1,0 +1,13 @@
+.negative {
+  color: var(--a-red);
+}
+
+.positive {
+  color: var(--a-green);
+}
+
+.coverageHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}

@@ -15,9 +15,10 @@ import { useCurrentHome } from '@/features/profile/components/AppShell/AppShell'
 import { errorText, fieldErrors, queryClient } from '@/shared/api/query';
 import { keys } from '@/shared/api/queryKeys';
 import { formatMoney, formatMonth, formatNumberInput, formatNumericDate, parseNumberInput, plural, rubToMoney } from '@/shared/lib/format';
-import { Btn, CheckField, Dialog, ModalFooter, Panel, Pill, SkeletonLines, Stack, TextField, TextLink } from '@/shared/ui';
+import { Btn, CheckField, Dialog, ModalFooter, Panel, Pill, SkeletonLines, Stack, Text, TextField, TextLink } from '@/shared/ui';
 
-import m from '../matching.module.css';
+import m from './StepFinance.module.css';
+import st from './step.module.css';
 
 export function StepFinance({ session, onClose }: { session: MatchingSession; onClose: () => void }) {
   const finance = useFinance();
@@ -138,7 +139,7 @@ function FinanceBody({ session, finance, onClose }: { session: MatchingSession; 
       }
     >
     <Stack gap={16}>
-      <div className={m.lead}>Мы подставили доступные сведения. Проверьте их и дополните, если что-то изменилось.</div>
+      <div className={st.lead}>Мы подставили доступные сведения. Проверьте их и дополните, если что-то изменилось.</div>
 
       <section className={m.block}>
         <div className={m.blockHead}>
@@ -148,18 +149,18 @@ function FinanceBody({ session, finance, onClose }: { session: MatchingSession; 
               Из Альфа-Бизнеса
             </Pill>
           </div>
-          <span className={m.small}>
+          <span className={st.small}>
             Среднее за {formatMonth(finance.period.from.slice(0, 7)).split(' ')[0]}-{formatMonth(finance.period.to.slice(0, 7))}
           </span>
         </div>
         {flowRow('Поступления в месяц', 'inflow', finance.monthly_inflow_avg)}
         {flowRow('Операционные расходы в месяц', 'outflow', finance.monthly_operating_outflow_avg)}
-        <Panel style={{ marginTop: 8, padding: '14px 16px' }}>
-          <div className={m.small} style={{ fontWeight: 500, color: 'var(--a-text)' }}>
+        <Panel compact className={m.summary}>
+          <Text medium tag='div'>
             Свободный денежный поток
-          </div>
+          </Text>
           <div className={m.flow}>{formatMoney(finance.free_cash_flow.value)} / мес.</div>
-          <div className={m.small}>Поступления минус операционные расходы, до платежей по кредитам.</div>
+          <div className={st.small}>Поступления минус операционные расходы, до платежей по кредитам.</div>
         </Panel>
       </section>
 
@@ -206,9 +207,9 @@ function FinanceBody({ session, finance, onClose }: { session: MatchingSession; 
             ))}
           </tbody>
         </table>
-        {bkiDate && <div className={m.small}>БКИ: сведения получены по действующему согласию.</div>}
-        <Panel style={{ marginTop: 10, padding: '12px 16px' }}>
-          <div className={m.flowRow} style={{ border: 0, padding: 0 }}>
+        {bkiDate && <div className={st.small}>БКИ: сведения получены по действующему согласию.</div>}
+        <Panel compact className={m.summary}>
+          <div className={m.totalRow}>
             <b>Всего платежей по кредитам</b>
             <b>{formatMoney(finance.debts.total_monthly_payment)} / мес.</b>
           </div>
@@ -257,11 +258,11 @@ function FinanceBody({ session, finance, onClose }: { session: MatchingSession; 
         }}
         label={
           <>
-            Подтверждаю, что данные актуальны <span className={m.required}>*</span>
+            Подтверждаю, что данные актуальны <span className={st.required}>*</span>
           </>
         }
       />
-      {error && <div className={m.error}>{error}</div>}
+      {error && <div className={st.error}>{error}</div>}
 
 
       <UploadDialog

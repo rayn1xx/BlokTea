@@ -26,7 +26,6 @@ async def test_owner_home(client: AsyncClient, demo: None) -> None:
     assert body["company"]["inn"] == "7700000001"
     assert body["company"]["director"] == {"user_id": str(U_SMIRNOV), "name": "Смирнов П. И.", "role": "owner"}
     assert body["accounts"][0]["current_money"] == {"value": 184_250_000, "currency": "RUB"}
-    # первый вход собственника открывает онбординг S3
     assert body["onboarding"] == {"completed": False, "progress_percent": 60, "next_step": "registry_confirm"}
     assert body["unread_notifications"] == 2
     assert body["bank_role"] is None

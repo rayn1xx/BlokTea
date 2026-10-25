@@ -1,5 +1,3 @@
-"""ИИ-задачи И1-И8 с моделью (фейковый Ollama): тексты от модели, числа и решения от кода."""
-
 import json
 from collections.abc import Callable, Iterator
 
@@ -83,11 +81,9 @@ class TestRecommendation:
         assert [r["text"] for r in rec["primary"]["reasons"]] == [f"ИИ: {r['code']}" for r in rec["primary"]["reasons"]]
         warning = next(w for w in rec["warnings"] if w["code"] == "LOAD_ABOVE_THRESHOLD")
         assert warning["text"] == "ИИ: платёж на эту сумму выше порога нагрузки"
-        # суммы, нагрузку и подбор считает код: они не зависят от модели
         assert rec["primary"]["amount"] == template["primary"]["amount"]
         assert rec["primary"]["load"] == template["primary"]["load"]
         assert fake.tasks() == ["I4"]
-        # деньги в API в копейках, модели уходят рубли
         sent = fake.calls[0]["input"]
         assert sent["amount_rub"] * 100 == rec["primary"]["amount"]["value"]
         assert sent["requested"]["amount_rub"] == 2_000_000
@@ -153,7 +149,6 @@ class TestBank:
             "ИИ: решение approved",
             "llm",
         )
-        # при одобрении советов нет, как в шаблоне
         assert view["improve_tips"] == []
 
     @pytest.mark.parametrize("text", ["Вам отказано", "Запрос отклонён"])
@@ -193,7 +188,6 @@ class TestDocuments:
         assert "INN 7700000099" in fake.calls[0]["input"]["text"]
         assert fake.tasks() == ["I1", "I3"]
         assert doc["status"] == "uploaded"
-        # тип не указали: подставлен уверенно определённый моделью
         assert doc["document_type"] == "fin_statements_2025"
         assert (analysis["status"], analysis["detected_type"], analysis["model"]) == (
             "done",
@@ -220,7 +214,6 @@ class TestDocuments:
         )
         doc = (await client.get(f"{API}/documents/{created.json()['id']}", headers=auth(U_MALKINA))).json()
 
-        # без мультимодальной модели и Tesseract скан прочитать нечем: ручная проверка
         assert fake.calls == []
         assert doc["analysis"]["status"] == "failed"
         assert doc["analysis"]["text_source"] == "template"

@@ -1,4 +1,3 @@
-# все модели импортируются здесь, чтобы alembic видел их в Base.metadata
 from app.db.base import Base
 from app.models.account import Account, AccountOwnerType, AccountType
 from app.models.application import (
@@ -6,6 +5,7 @@ from app.models.application import (
     Application,
     ApplicationEvent,
     ApplicationStatus,
+    CallNote,
     Challenge,
     CheckResult,
     Consent,
@@ -34,6 +34,7 @@ __all__ = [
     "AuditLog",
     "BankRole",
     "Base",
+    "CallNote",
     "Challenge",
     "CheckResult",
     "Company",

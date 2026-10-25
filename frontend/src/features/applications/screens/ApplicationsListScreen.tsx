@@ -8,10 +8,10 @@ import type { ApplicationSort, ApplicationSummary } from '@/features/application
 import { useStartMatching } from '@/features/matching/lib';
 import { useCurrentHome } from '@/features/profile/components/AppShell/AppShell';
 import { APP_STATUS, APPLICATION_GROUPS } from '@/shared/i18n/ru';
-import { appNo, formatLongDate, formatMoney } from '@/shared/lib/format';
-import { Btn, EmptyState, ErrorState, PageHead, SearchField, SelectField, SkeletonLines, Tabs, TextLink, kit } from '@/shared/ui';
+import { appNo, formatLongDate, formatMoney, norm } from '@/shared/lib/format';
+import { Btn, Cell, EmptyState, ErrorState, PageHead, SearchField, SelectField, SkeletonLines, Table, Tabs, TextLink } from '@/shared/ui';
 
-import l from '../list.module.css';
+import s from './ApplicationsListScreen.module.css';
 
 type TabId = 'all' | (typeof APPLICATION_GROUPS)[number]['id'];
 
@@ -49,8 +49,8 @@ export function ApplicationsListScreen() {
   const counters = list.data?.counters;
   const total = counters ? counters.drafts + counters.in_bank + counters.awaiting_signing + counters.finished : undefined;
 
-  const q = query.trim().toLowerCase();
-  const items = (list.data?.items ?? []).filter((a) => !q || `${a.number} ${a.purpose} ${a.product.name}`.toLowerCase().includes(q));
+  const q = norm(query.trim());
+  const items = (list.data?.items ?? []).filter((a) => !q || norm(`${a.number} ${a.purpose} ${a.product.name}`).includes(q));
 
   return (
     <div>
@@ -74,11 +74,11 @@ export function ApplicationsListScreen() {
           ...APPLICATION_GROUPS.map((g) => ({ id: g.id as TabId, label: g.label, count: counters?.[g.id] })),
         ]}
       />
-      <div className={l.toolbar}>
-        <div className={l.search}>
+      <div className={s.toolbar}>
+        <div className={s.search}>
           <SearchField value={query} onChange={setQuery} placeholder='Поиск по номеру или цели' />
         </div>
-        <div className={l.sort}>
+        <div className={s.sort}>
           <SelectField value={sort} options={SORTS} onChange={setSort} ariaLabel='Сортировка' />
         </div>
       </div>
@@ -90,8 +90,7 @@ export function ApplicationsListScreen() {
       ) : items.length === 0 ? (
         <EmptyState title='Заявок нет' text={q ? 'По запросу ничего не нашлось' : 'Когда вы подадите заявку, она появится здесь'} />
       ) : (
-        <div className={kit.tableWrap}>
-          <table className={kit.table}>
+        <Table>
             <thead>
               <tr>
                 <th>Заявка</th>
@@ -106,19 +105,16 @@ export function ApplicationsListScreen() {
                 return (
                   <tr key={a.id}>
                     <td>
-                      <div className={kit.cellTitle}>{a.purpose}</div>
-                      <div className={kit.cellSub}>
-                        {a.status === 'draft' ? 'Черновик' : appNo(a.number)} · {formatLongDate(a.created_at)}
-                      </div>
+                      <Cell title={a.purpose} sub={<>{a.status === 'draft' ? 'Черновик' : appNo(a.number)} · {formatLongDate(a.created_at)}</>} />
                     </td>
-                    <td className={l.amount}>{formatMoney(a.approved_amount ?? a.requested_amount)}</td>
+                    <td className={s.amount}>{formatMoney(a.approved_amount ?? a.requested_amount)}</td>
                     <td>
                       <AppStatusPill status={a.status} small />
-                      <div className={kit.cellSub}>{nextStep(a)}</div>
+                      <Cell sub={nextStep(a)} />
                     </td>
-                    <td className={kit.right}>
+                    <td data-align='right'>
                       {action.accent ? (
-                        <Btn variant='outlineRed' size='m' onClick={() => navigate(action.route)} className={l.action}>
+                        <Btn variant='outlineRed' size='m' onClick={() => navigate(action.route)} className={s.action}>
                           {action.label}
                         </Btn>
                       ) : (
@@ -131,10 +127,9 @@ export function ApplicationsListScreen() {
                 );
               })}
             </tbody>
-          </table>
-        </div>
+          </Table>
       )}
-      <div className={l.footer}>
+      <div className={s.footer}>
         <span>Статусы обновляются автоматически</span>
         {list.data && (
           <span>

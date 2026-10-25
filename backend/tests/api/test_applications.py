@@ -1,5 +1,3 @@
-"""Заявки клиента: список, создание, черновик, согласия, отправка, решение, подписание (К.8-К.11, сценарии А-Д)."""
-
 import uuid
 
 import pytest
@@ -9,9 +7,9 @@ from app.seed import U_ANALYST, U_LES, U_MALKINA, U_NOROLE, U_ORLOVA, U_PETROV, 
 from tests.api.conftest import auth
 
 API = "/api/v1"
-SIGNING_APP = uid(1003)  # КЗ-2026-001040, ждёт подписи
-DRAFT_APP = uid(1001)  # КЗ-2026-001037, черновик Лес И. О.
-REVIEW_APP = uid(1002)  # КЗ-2026-001039, на рассмотрении
+SIGNING_APP = uid(1003)
+DRAFT_APP = uid(1001)
+REVIEW_APP = uid(1002)
 
 NEED = {
     "purpose": "working_capital",
@@ -62,7 +60,6 @@ async def submit(client: AsyncClient, app_id: str) -> dict:
     response = await client.post(f"{API}/applications/{app_id}/submit", headers=auth(U_SMIRNOV))
     assert response.status_code == 200, response.text
     assert response.json()["status"] == "submitted"
-    # автопроверки идут фоновой задачей; через ASGI-транспорт она завершается вместе с запросом
     return (await client.get(f"{API}/applications/{app_id}", headers=auth(U_SMIRNOV))).json()
 
 
@@ -120,7 +117,6 @@ class TestList:
         signing = next(i for i in items if i["number"] == "КЗ-2026-001040")
 
         assert signing["awaiting_from"]["name"] == "Смирнов П. И."
-        # подпись Петрова вторая: пока его очередь не пришла, подписывать нельзя
         assert "signing.sign" not in signing["available_actions"]
 
     async def test_other_company_application_is_404(self, client: AsyncClient, demo: None) -> None:
@@ -224,7 +220,6 @@ class TestDraft:
         assert status["consent_bki"] == ("required", "missing")
         assert status["consent_pd"] == ("required", "done")
         assert status["company_docs"] == ("required", "done")
-        # отчётность ситуативная: заявку можно отправить, банк запросит её сам (сценарий Б)
         assert status["fin_statements_2025"] == ("situational", "missing")
         assert body["can_submit"] is False
 
@@ -284,7 +279,6 @@ class TestDraft:
 
 class TestScenarios:
     async def test_counter_offer_accept_sign_and_issue(self, client: AsyncClient, demo: None) -> None:
-        """Сценарий А: 2 000 000 ₽ на 24 мес, балл 62, аналитик даёт 1 500 000 ₽ на 36 мес, две подписи, выдача."""
         app = await create_from_recommendation(client, keep_requested=True)
         detail = await submit(client, app["id"])
         assert detail["status"] == "in_review"
@@ -315,7 +309,6 @@ class TestScenarios:
         assert "отказано" not in client_view["decision"]["explanation_text"].lower()
         assert {"offer.accept", "offer.decline"} <= set(client_view["available_actions"])
 
-        # сотрудник по финансированию решение по предложению не принимает
         forbidden = await client.post(f"{API}/applications/{app['id']}/offer/accept", headers=auth(U_LES))
         assert forbidden.status_code == 403
 
@@ -340,7 +333,6 @@ class TestScenarios:
         assert len((await client.get(f"{API}/loans/{loan['id']}", headers=auth(U_SMIRNOV))).json()["schedule"]) == 36
 
     async def test_recommended_terms_are_auto_approved(self, client: AsyncClient, demo: None) -> None:
-        """1 500 000 ₽ на 36 мес: нагрузка 26,2%, балл 72, проверки без предупреждений: авторешение."""
         app = await create_from_recommendation(client, keep_requested=False)
         detail = await submit(client, app["id"])
 
@@ -350,7 +342,6 @@ class TestScenarios:
         assert any(t["type"] == "accept_offer" for t in tasks)
 
     async def test_info_request_reassign_and_answer(self, client: AsyncClient, demo: None) -> None:
-        """Сценарий Б: банк просит отчётность, собственник передаёт задачу бухгалтеру, бухгалтер отвечает."""
         analyst = auth(U_ANALYST)
         await client.post(f"{API}/bank/applications/{REVIEW_APP}/take", headers=analyst)
         await client.post(

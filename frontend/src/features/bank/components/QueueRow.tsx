@@ -1,9 +1,7 @@
-import { Button } from '@alfalab/core-components/button';
-
 import { StatusLabel } from '@/features/applications/components/StatusLabel';
 import type { BankQueueItem } from '@/features/bank/types';
 import { formatMinutes, formatMoney } from '@/shared/lib/format';
-import { SmallTag, Text, ToneLabel, uiStyles as s } from '@/shared/ui';
+import { Btn, SmallTag, Text, ToneLabel } from '@/shared/ui';
 
 export function QueueRow({ item, onOpen, onTake, taking }: { item: BankQueueItem; onOpen: () => void; onTake: () => void; taking: boolean }) {
   const riskTone = item.risk_level === 'low' ? 'positive' : item.risk_level === 'medium' ? 'attention' : 'negative';
@@ -31,7 +29,7 @@ export function QueueRow({ item, onOpen, onTake, taking }: { item: BankQueueItem
           {formatMoney(item.requested_amount)} на {item.requested_term_months} мес.
         </Text>
       </td>
-      <td className={s.right}>
+      <td data-align='right'>
         {item.score !== null && (
           <ToneLabel tone={riskTone} small>
             {item.score}
@@ -58,13 +56,13 @@ export function QueueRow({ item, onOpen, onTake, taking }: { item: BankQueueItem
         {item.auto_decided ? (
           <SmallTag>авторешение</SmallTag>
         ) : !item.assignee ? (
-          <Button view='primary' size={32} onClick={onTake} loading={taking}>
+          <Btn size='s' onClick={onTake} loading={taking}>
             Взять в работу
-          </Button>
+          </Btn>
         ) : (
-          <Button view='secondary' size={32} onClick={onOpen}>
+          <Btn variant='outline' size='s' onClick={onOpen}>
             Открыть
-          </Button>
+          </Btn>
         )}
       </td>
     </tr>

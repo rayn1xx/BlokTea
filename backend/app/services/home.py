@@ -1,5 +1,3 @@
-"""Главная (К.3): профиль, роль, права, компания, счета, онбординг."""
-
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -43,7 +41,6 @@ class HomeService:
             "birth_date": iso(user.birth_date),
             "role": member.role.value if member else None,
             "permissions": permissions,
-            # главная бухгалтера (S6), если нельзя подавать заявки
             "home_profile": "entrepreneur" if "submit_applications" in permissions else "accountant",
             "bank_role": user.bank_role.value if user.bank_role else None,
             "company": await company_view(self.session, company) if company else None,

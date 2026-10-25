@@ -1,5 +1,3 @@
-"""Переходы статусов, таймлайн, аудит, уведомления и задачи. Пишутся в одной сессии: коммит делает вызывающий."""
-
 import uuid
 from collections.abc import Iterable
 
@@ -28,7 +26,7 @@ STATUS_EVENT_TITLES = {
 
 class Actor:
     def __init__(self, type_: str, user_id: uuid.UUID | None = None, name: str | None = None) -> None:
-        self.type = type_  # client | bank | system
+        self.type = type_
         self.user_id = user_id
         self.name = name
 
@@ -122,7 +120,6 @@ def transition(
     notify_users: Iterable[uuid.UUID | None] = (),
     notification_text: str | None = None,
 ) -> None:
-    """Переход по машине состояний: статус, версия, событие таймлайна, аудит и уведомление в одной транзакции."""
     current = app.status.value
     if not can_transition(current, target.value):
         raise invalid_transition(

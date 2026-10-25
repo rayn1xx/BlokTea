@@ -1,0 +1,9 @@
+.code {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--a-radius-control);
+  background: #f1e9ff;
+  color: #5b2bb5;
+}

@@ -34,7 +34,6 @@ async def refresh(response: Response, auth: AuthServiceDep, refresh_token: Refre
     try:
         issued = await auth.refresh(refresh_token)
     except InvalidRefreshTokenError:
-        # HTTPException сбросил бы заголовки response: cookie удаляем на явном ответе
         error = JSONResponse(error_body("UNAUTHORIZED", "Сессия закончилась, войдите снова"), status.HTTP_401_UNAUTHORIZED)
         delete_refresh_cookie(error)
         return error
@@ -43,7 +42,6 @@ async def refresh(response: Response, auth: AuthServiceDep, refresh_token: Refre
     return token_response(issued)
 
 
-# access-токен не требуем: он мог уже истечь, а выйти пользователь должен в любом случае
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(response: Response, auth: AuthServiceDep, refresh_token: RefreshCookie = None) -> None:
     await auth.logout(refresh_token)

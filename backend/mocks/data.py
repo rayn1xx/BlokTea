@@ -1,9 +1,3 @@
-"""Синтетические данные моков. Все компании и цифры вымышлены, совпадение с реальными случайно.
-
-Суммы в копейках. Поступления по месяцам подобраны так, что среднее за любые 12 подряд идущих месяцев
-ровно 2 100 000 ₽ (поступления) и 1 450 000 ₽ (операционные расходы): это контрольный пример 3.1 ТЗ.
-"""
-
 from datetime import date
 
 
@@ -166,7 +160,6 @@ COMPANIES: dict[str, dict] = {
             },
         ],
         "multibank": {"connected": False},
-        # средние за год и коэффициенты месяцев спада (сумма коэффициентов за год ровно 12)
         "flows": {
             "inflow": rub(2_100_000),
             "outflow": rub(1_450_000),
@@ -250,7 +243,6 @@ LOAN_DISBURSEMENT = rub(500_000)
 
 
 def month_value(avg: int, low_k: float, low_months: list[int], month: int) -> int:
-    """Значение месяца: в месяцы спада avg × low_k, в остальные компенсация, чтобы год давал ровно 12 × avg."""
     if not low_months:
         return avg
     if month in low_months:
@@ -293,7 +285,6 @@ def month_transactions(inn: str, year: int, month: int) -> list[dict]:
         items.append(tx(10 + i, 10 + i * 4, "out", "outflow_operating", part, name))
     for i, payment in enumerate(company["loan_payments"]):
         items.append(tx(20 + i, 20 + i, "out", "loan_payment", payment, "Платёж по кредиту"))
-    # переводы между своими счетами и выдача кредита в расчёт потока не входят
     if inn == MASHPROM_INN:
         items.append(tx(30, 15, "out", "own_transfer", OWN_TRANSFER, "Свой счёт"))
         items.append(tx(31, 16, "in", "own_transfer", OWN_TRANSFER, "Свой счёт"))

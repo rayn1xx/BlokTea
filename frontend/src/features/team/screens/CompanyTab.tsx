@@ -1,13 +1,13 @@
 import { useState } from 'react';
 
 import { ExtraFields, RegistryActions, RegistryBadge, RequisitesGrid, useCompanyForm } from '@/features/company/components/companyForm';
-import { progressText } from '@/features/company/components/CompanyProfileModal';
+import { progressText } from '@/features/company/screens/CompanyProfileScreen';
 import { useCompanyProfile } from '@/features/company/hooks';
 import type { CompanyProfile } from '@/features/company/types';
 import t from '@/features/team/components/team.module.css';
 import { TAX_REGIME_LABELS } from '@/shared/i18n/ru';
 import { formatMoney } from '@/shared/lib/format';
-import { Accordion, Bar, Box, Btn, Panel, QueryGate, Stack } from '@/shared/ui';
+import { Accordion, Bar, Btn, Card, Panel, QueryGate, Stack } from '@/shared/ui';
 
 export function CompanyTab() {
   const profile = useCompanyProfile();
@@ -36,12 +36,12 @@ function CompanyForm({ profile }: { profile: CompanyProfile }) {
         </Panel>
         <div className={t.companyLayout}>
           <Stack gap={14}>
-            <Box title='Реквизиты компании' right={<RegistryBadge profile={profile} />}>
+            <Card title='Реквизиты компании' right={<RegistryBadge profile={profile} />}>
               <RequisitesGrid profile={profile} />
               <div style={{ marginTop: 18 }}>
                 <RegistryActions form={form} />
               </div>
-            </Box>
+            </Card>
             <Accordion title='Контакты и банковские реквизиты' subtitle='Из Альфа-Бизнеса'>
               <dl style={{ margin: 0, display: 'grid', gap: 8 }}>
                 <div>Сотрудников: {lk.employees_count.value ?? 'нет данных'}</div>
@@ -51,7 +51,7 @@ function CompanyForm({ profile }: { profile: CompanyProfile }) {
               </dl>
             </Accordion>
           </Stack>
-          <Box
+          <Card
             title={
               <div>
                 <h2 style={{ margin: 0, fontSize: 20 }}>Дополнительные сведения</h2>
@@ -65,7 +65,7 @@ function CompanyForm({ profile }: { profile: CompanyProfile }) {
             <div className={t.muted} style={{ marginTop: 14 }}>
               Эти сведения помогут точнее подобрать финансирование
             </div>
-          </Box>
+          </Card>
         </div>
       </Stack>
       {form.error && <div style={{ color: 'var(--a-red)', marginTop: 12 }}>{form.error}</div>}

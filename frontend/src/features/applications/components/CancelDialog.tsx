@@ -6,7 +6,7 @@ import type { ApplicationDetail } from '@/features/applications/types';
 import { errorText, invalidateApplication } from '@/shared/api/query';
 import { CANCEL_REASONS } from '@/shared/i18n/ru';
 import { appNo, formatMoney } from '@/shared/lib/format';
-import { Btn, Dialog, Field, SelectField, Stack } from '@/shared/ui';
+import { Btn, Dialog, Field, SelectField, Stack, Text } from '@/shared/ui';
 
 export function CancelDialog({ app, onClose }: { app: ApplicationDetail; onClose: () => void }) {
   const [reason, setReason] = useState('');
@@ -31,7 +31,7 @@ export function CancelDialog({ app, onClose }: { app: ApplicationDetail; onClose
         <Field label='Причина отзыва' optional hint='Поможет нам улучшить сервис'>
           <SelectField value={reason} placeholder='Выберите причину' options={CANCEL_REASONS.map((r) => ({ value: r, label: r }))} onChange={setReason} ariaLabel='Причина отзыва' />
         </Field>
-        {error && <div style={{ color: 'var(--a-red)' }}>{error}</div>}
+        {error && <Text color='negative' tag='div'>{error}</Text>}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, paddingTop: 18, borderTop: '1px solid var(--a-border)' }}>
           <Btn variant='outline' size='l' block onClick={onClose}>
             Вернуться к заявке

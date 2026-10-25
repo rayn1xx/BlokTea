@@ -13,11 +13,11 @@ import { formatNumberInput, parseNumberInput, rubToMoney } from '@/shared/lib/fo
 import type { CollateralType, Disbursement, NeedType, PurposeCode, Urgency } from '@/shared/types/common';
 import { Btn, Dialog, Field, ModalFooter, Options, SelectField, Stack, TextField } from '@/shared/ui';
 
-import m from '../matching.module.css';
+import s from './step.module.css';
 
 type Pledge = 'yes' | 'no' | 'unknown';
 
-const REQUIRED = <span className={m.required}>*</span>;
+const REQUIRED = <span className={s.required}>*</span>;
 
 export function StepNeed({ session, onClose }: { session: MatchingSession; onClose: () => void }) {
   const navigate = useNavigate();
@@ -73,9 +73,9 @@ export function StepNeed({ session, onClose }: { session: MatchingSession; onClo
       }
     >
       <Stack gap={18}>
-        <div className={m.lead}>
+        <div className={s.lead}>
           Укажите параметры нового кредита. Данные компании повторно вводить не нужно.
-          <div className={m.small}>Поля со {REQUIRED} обязательны</div>
+          <div className={s.small}>Поля со {REQUIRED} обязательны</div>
         </div>
 
         <Field label={<>Цель финансирования {REQUIRED}</>} hint='Оборудование, закупка товара, текущие расходы и другое' error={errors.purpose}>
@@ -88,7 +88,7 @@ export function StepNeed({ session, onClose }: { session: MatchingSession; onClo
           />
         </Field>
 
-        <div className={m.two}>
+        <div className={s.two}>
           <Field label={<>Сумма {REQUIRED}</>} error={errors.amount}>
             <TextField
               value={formatNumberInput(need.amount ? need.amount.value / 100 : null)}
@@ -152,7 +152,7 @@ export function StepNeed({ session, onClose }: { session: MatchingSession; onClo
           />
         </Field>
 
-        <div className={m.divider} />
+        <div className={s.divider} />
 
         <Field label='Готовы рассмотреть залог?' optional hint='Если да, уточним сведения на следующем этапе'>
           <Options<Pledge>
@@ -166,7 +166,7 @@ export function StepNeed({ session, onClose }: { session: MatchingSession; onClo
             onChange={setPledgeValue}
           />
         </Field>
-        {errors.form && <div className={m.error}>{errors.form}</div>}
+        {errors.form && <div className={s.error}>{errors.form}</div>}
       </Stack>
     </Dialog>
   );

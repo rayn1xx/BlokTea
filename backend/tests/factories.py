@@ -33,7 +33,6 @@ def digits(length: int) -> str:
 
 
 def make_user(*, password: str = DEFAULT_PASSWORD, **overrides: Any) -> User:
-    """Пользователь с валидными данными по умолчанию; в БД не сохраняется."""
     data: dict[str, Any] = {
         "id": uuid.uuid4(),
         "login": f"user-{uuid.uuid4().hex[:8]}@test.local",
@@ -49,7 +48,6 @@ def make_user(*, password: str = DEFAULT_PASSWORD, **overrides: Any) -> User:
 
 
 def make_company(**overrides: Any) -> Company:
-    """ООО с валидными реквизитами; для ИП передай legal_form=LegalForm.IP: реквизиты подстроятся."""
     is_ip = overrides.get("legal_form") == LegalForm.IP
     data: dict[str, Any] = {
         "id": uuid.uuid4(),
@@ -73,7 +71,6 @@ def make_company(**overrides: Any) -> Company:
 
 
 def make_member(*, company: Company, user: User | None, role: UserRole = UserRole.OWNER, **overrides: Any) -> Member:
-    """Сотрудник компании; права по умолчанию для роли (К.5)."""
     data: dict[str, Any] = {
         "id": uuid.uuid4(),
         "company_id": company.id,
@@ -92,7 +89,6 @@ def make_member(*, company: Company, user: User | None, role: UserRole = UserRol
 
 
 def make_account(*, company: Company | None = None, user: User | None = None, **overrides: Any) -> Account:
-    """Счёт компании или пользователя: передай ровно одного владельца."""
     if (company is None) == (user is None):
         raise ValueError("нужен ровно один владелец: company или user")
 
@@ -112,7 +108,6 @@ def make_account(*, company: Company | None = None, user: User | None = None, **
 
 
 def make_application(*, company: Company, **overrides: Any) -> Application:
-    """Заявка компании; для статусов после решения банка одобренные условия = запрошенным."""
     data: dict[str, Any] = {
         "id": uuid.uuid4(),
         "number": f"КЗ-2026-{digits(6)}",

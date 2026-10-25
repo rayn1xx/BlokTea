@@ -1,0 +1,34 @@
+:root {
+  --a-red: #ef3124;
+  --a-red-hover: #d92a1d;
+  --a-red-soft: #fdeeed;
+  --a-red-border: #f4b8b3;
+
+  --a-text: #1d1d21;
+  --a-text-2: #6b7280;
+  --a-text-3: #9ca3af;
+
+  --a-bg: #ffffff;
+  --a-bg-soft: #f4f5f7;
+  --a-bg-side: #f7f8fa;
+  --a-border: #e6e8eb;
+  --a-track: #e3e5e8;
+
+  --a-control-border: #d5d8dc;
+  --a-control-border-hover: #b5b9bf;
+  --a-focus: var(--a-blue);
+
+  --a-green: #219653;
+  --a-green-soft: #e8f6ee;
+  --a-green-border: #b9e3c8;
+  --a-yellow: #b76e00;
+  --a-yellow-soft: #fff6e8;
+  --a-yellow-border: #f3d9a6;
+  --a-blue: #2563eb;
+  --a-blue-soft: #eef4ff;
+  --a-purple: #7b3fe4;
+
+  --a-radius: 12px;
+  --a-radius-control: 10px;
+  --a-shadow-popup: 0 12px 32px rgba(17, 24, 39, 0.12);
+}

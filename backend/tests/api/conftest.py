@@ -28,14 +28,11 @@ def _uploads(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def mocks_factory():
-    # сервис моков поднимается в том же процессе, без сети
     return open_external(ASGITransport(app=mocks_app))
 
 
 @pytest.fixture
 async def make_client(session_factory: async_sessionmaker[AsyncSession], redis: Redis) -> AsyncIterator[ClientFactory]:
-    """Клиент к любому FastAPI-приложению с подменой БД, Redis и моков на тестовые."""
-
     async def override_session() -> AsyncIterator[AsyncSession]:
         async with session_factory() as session:
             yield session
@@ -64,7 +61,6 @@ async def client(make_client: ClientFactory) -> AsyncIterator[AsyncClient]:
 
 @pytest.fixture
 async def demo(session_factory: async_sessionmaker[AsyncSession]) -> None:
-    """Демо-данные раздела 6 ТЗ в тестовой базе."""
     from app.seed import seed
 
     async with session_factory() as session:

@@ -1,5 +1,3 @@
-"""Клиент к сервису моков внешних систем. Все системы смоделированы (THIRD_PARTY_NOTICES)."""
-
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from datetime import date
@@ -11,16 +9,12 @@ from app.core.config import settings
 
 
 class IntegrationUnavailable(Exception):
-    """Внешняя система не ответила или ответила ошибкой."""
-
     def __init__(self, system: str) -> None:
         super().__init__(system)
         self.system = system
 
 
 class ExternalSystems:
-    """Обращения к мокам в рамках одного запроса; одинаковые вызовы кешируются в памяти."""
-
     def __init__(self, client: httpx.AsyncClient) -> None:
         self._client = client
         self._cache: dict[tuple, Any] = {}
@@ -92,7 +86,6 @@ class ExternalSystems:
 
 
 async def optional(call) -> Any:
-    """Результат вызова или None, если система недоступна."""
     try:
         return await call
     except IntegrationUnavailable:
@@ -108,7 +101,6 @@ async def open_external(transport: httpx.AsyncBaseTransport | None = None) -> As
         base_url=settings.mocks_base_url,
         timeout=settings.mocks_timeout_seconds,
         transport=transport,
-        # внутренний сервис: системный прокси не нужен
         trust_env=False,
     ) as client:
         yield ExternalSystems(client)

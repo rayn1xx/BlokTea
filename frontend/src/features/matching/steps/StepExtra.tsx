@@ -24,9 +24,10 @@ import { keys } from '@/shared/api/queryKeys';
 import { COLLATERAL_LABELS } from '@/shared/i18n/ru';
 import { formatNumberInput, monthName, parseNumberInput, rubToMoney } from '@/shared/lib/format';
 import type { CollateralType, Money, Preference } from '@/shared/types/common';
-import { Btn, DateField, Dialog, ModalFooter, Options, Pill, SelectField, Stack, TextField, TextLink } from '@/shared/ui';
+import { Btn, DateField, Dialog, type Icon, ModalFooter, Options, Pill, SelectField, Stack, TextField, TextLink } from '@/shared/ui';
 
-import m from '../matching.module.css';
+import m from './StepExtra.module.css';
+import st from './step.module.css';
 
 const inMonth = (x: string) => (/[ьй]$/.test(x) ? x.slice(0, -1) : x) + 'е';
 
@@ -36,17 +37,17 @@ const toMoney = (v: string) => {
   return rub ? rubToMoney(rub) : null;
 };
 
-function Section({ icon: Icon, title, subtitle, tag, children }: { icon: typeof BankMIcon; title: string; subtitle?: string; tag?: ReactNode; children: ReactNode }) {
+function Section({ icon: Icon, title, subtitle, tag, children }: { icon: Icon; title: string; subtitle?: string; tag?: ReactNode; children: ReactNode }) {
   const [open, setOpen] = useState(true);
   return (
     <section className={m.section}>
       <button type='button' className={m.sectionHead} onClick={() => setOpen((v) => !v)} aria-expanded={open}>
         <Icon className={m.sectionIcon} />
         <span style={{ flex: 1 }}>
-          <span className={m.sectionTitle}>
+          <span className={st.sectionTitle}>
             {title} {tag}
           </span>
-          {subtitle && <span className={m.small} style={{ display: 'block' }}>{subtitle}</span>}
+          {subtitle && <span className={st.small} style={{ display: 'block' }}>{subtitle}</span>}
         </span>
         <ChevronDownMIcon className={m.sectionIcon} style={{ transform: open ? 'rotate(180deg)' : undefined }} />
       </button>
@@ -112,14 +113,14 @@ export function StepExtra({ session, onClose }: { session: MatchingSession; onCl
       }
     >
       <Stack gap={16}>
-        <div className={m.lead}>
+        <div className={st.lead}>
           Дополнительные данные помогут точнее оценить нагрузку и подобрать условия. Этот шаг можно пропустить.
-          <div className={m.small}>Предварительный подбор не гарантирует одобрение.</div>
+          <div className={st.small}>Предварительный подбор не гарантирует одобрение.</div>
         </div>
 
         <div className={m.known}>
           <div className={m.knownHead}>
-            <span className={m.sectionTitle}>
+            <span className={st.sectionTitle}>
               <CheckmarkCircleMIcon style={{ width: 20, height: 20, color: 'var(--a-green)' }} /> Данные уже учтены
             </span>
             <Pill small tone='white'>
@@ -130,15 +131,15 @@ export function StepExtra({ session, onClose }: { session: MatchingSession; onCl
             <div className={m.knownTile}>
               <ChartColumnThreeAscMIcon className={m.sectionIcon} />
               <div>
-                <div className={m.small}>Выручка по месяцам</div>
+                <div className={st.small}>Выручка по месяцам</div>
                 <b>Данные за {finance.data?.months.length ?? 12} месяцев</b>
-                <div className={m.small}>По классифицированным операциям</div>
+                <div className={st.small}>По классифицированным операциям</div>
               </div>
             </div>
             <div className={m.knownTile}>
               <ChartLineAscMIcon className={m.sectionIcon} />
               <div>
-                <div className={m.small}>Сезонность</div>
+                <div className={st.small}>Сезонность</div>
                 <b>{season ? `Снижение в ${season.low_months.map((x) => inMonth(monthName(x))).join('-')}` : 'Не выявлена'}</b>
                 <div>
                   <TextLink tone='blue' onClick={() => navigate(`/match/${session.id}/step/2`)}>
@@ -150,7 +151,7 @@ export function StepExtra({ session, onClose }: { session: MatchingSession; onCl
           </div>
         </div>
 
-        <div className={m.sectionTitle}>Сведения, которых пока не хватает</div>
+        <div className={st.sectionTitle}>Сведения, которых пока не хватает</div>
 
         <Section icon={DocumentLinesMIcon} title='Ожидаемые оплаты по договорам' subtitle='Если ожидаете поступления от покупателей'>
           {(extra.expected_payments.length ? extra.expected_payments : [payment]).map((p, i) => (
@@ -162,7 +163,7 @@ export function StepExtra({ session, onClose }: { session: MatchingSession; onCl
           <TextLink tone='blue' onClick={() => update('expected_payments', [...extra.expected_payments, { ...payment, amount: { value: 0, currency: 'RUB' }, date: '' }])}>
             <PlusMIcon style={{ width: 18, height: 18 }} /> Добавить оплату
           </TextLink>
-          <div className={m.small}>Уже полученные из документооборота сведения повторно не запрашиваем.</div>
+          <div className={st.small}>Уже полученные из документооборота сведения повторно не запрашиваем.</div>
         </Section>
 
         <Section icon={BankMIcon} title='Счета в других банках' subtitle='Добавьте только обороты, которые ещё не учтены на шаге 2'>
@@ -174,7 +175,7 @@ export function StepExtra({ session, onClose }: { session: MatchingSession; onCl
               inputMode='numeric'
             />
           ) : (
-            <div className={m.two}>
+            <div className={st.two}>
               <Btn variant='outline' size='l' block leftAddons={<PlusMIcon style={{ width: 18, height: 18 }} />} onClick={() => setBankOpen(true)}>
                 Добавить сведения
               </Btn>
@@ -185,10 +186,10 @@ export function StepExtra({ session, onClose }: { session: MatchingSession; onCl
           )}
         </Section>
 
-        <div className={m.two}>
+        <div className={st.two}>
           <Section icon={BanknoteStackMIcon} title='Собственные средства на проект'>
             <TextField value={moneyText(extra.own_funds)} onChange={(v) => update('own_funds', toMoney(v))} placeholder='Сумма, ₽' inputMode='numeric' />
-            <div className={m.small}>Поможет уточнить размер кредита</div>
+            <div className={st.small}>Поможет уточнить размер кредита</div>
           </Section>
           <Section icon={HouseMIcon} title='Возможный залог' tag={withCollateral ? <Pill small>Вы отметили на шаге 1</Pill> : undefined}>
             <SelectField<CollateralType>
@@ -214,7 +215,7 @@ export function StepExtra({ session, onClose }: { session: MatchingSession; onCl
         </div>
 
         <div>
-          <div className={m.sectionTitle} style={{ marginBottom: 10 }}>
+          <div className={st.sectionTitle} style={{ marginBottom: 10 }}>
             Что для вас важнее?
           </div>
           <Options<Preference>
@@ -228,7 +229,7 @@ export function StepExtra({ session, onClose }: { session: MatchingSession; onCl
             onChange={(v) => update('preference', v)}
           />
         </div>
-        {error && <div className={m.error}>{error}</div>}
+        {error && <div className={st.error}>{error}</div>}
       </Stack>
       <UploadDialog open={upload} onClose={() => setUpload(false)} title='Загрузить выписку' documentType='other_bank_statements' />
     </Dialog>

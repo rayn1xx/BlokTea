@@ -5,12 +5,9 @@ from enum import StrEnum
 
 from redis.asyncio import Redis
 
-# auth:refresh:{token_hash} -> hash {user_id, revoked}; живёт столько же, сколько refresh-токен
-# auth:user_refresh:{user_id} -> set хешей токенов пользователя, чтобы отозвать все сессии разом
 SESSION_KEY = "auth:refresh:{}"
 USER_SESSIONS_KEY = "auth:user_refresh:{}"
 
-# проверка и пометка «использован» одной атомарной операцией: два параллельных refresh не пройдут оба
 CONSUME_SCRIPT = """
 local user_id = redis.call('HGET', KEYS[1], 'user_id')
 if not user_id then
@@ -26,8 +23,8 @@ return {'ok', user_id}
 
 class ConsumeStatus(StrEnum):
     OK = "ok"
-    MISSING = "missing"  # токена нет или истёк
-    REUSED = "reused"  # токен уже использовали: вероятная кража
+    MISSING = "missing"
+    REUSED = "reused"
 
 
 @dataclass(frozen=True)
@@ -49,7 +46,6 @@ class RefreshSessionRepository:
             pipe.hset(session_key, mapping={"user_id": str(user_id), "revoked": "0"})
             pipe.expire(session_key, ttl)
             pipe.sadd(user_key, token_hash)
-            # множество живёт не меньше самой свежей сессии
             pipe.expire(user_key, ttl)
             await pipe.execute()
 

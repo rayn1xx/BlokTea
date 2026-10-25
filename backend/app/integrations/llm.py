@@ -1,10 +1,3 @@
-"""Клиент к локальной LLM через Ollama (раздел 8 ТЗ).
-
-Модель получает только факты, посчитанные кодом, и отвечает строго JSON по схеме. Любой сбой
-(выключено, таймаут, невалидный JSON, ответ не по схеме, лишние числа) возвращает ok=False,
-и вызывающий код оставляет шаблон-заглушку.
-"""
-
 import hashlib
 import json
 import logging
@@ -39,7 +32,7 @@ EXTRACT_PROMPT = (
 )
 
 CACHE_SIZE = 512
-MAX_ATTEMPTS = 2  # одна повторная попытка (8.1 п.5)
+MAX_ATTEMPTS = 2
 
 
 @dataclass(frozen=True)
@@ -51,7 +44,6 @@ class LlmResult:
     reason: FailReason | None = None
 
 
-# числа в тексте: «1 500 000», «1,5 млн», «26,2%», «24 мес»
 NUMBER_RE = re.compile(r"(?<![\w.,])(\d{1,3}(?:[   ]\d{3})+|\d+)(?:[.,](\d+))?(?:\s*(млн|млрд|тыс))?", re.IGNORECASE)
 SCALE = {"тыс": 1_000, "млн": 1_000_000, "млрд": 1_000_000_000}
 
@@ -82,10 +74,8 @@ def numbers_in_input(data: Any) -> set[float]:
 
 
 def number_known(value: float, known: set[float]) -> bool:
-    """Число из ответа совпадает со входом с учётом округления: «26%» при 26,2 и «1,5 млн» при 1 500 000."""
     for k in known:
         if abs(k) >= 10_000:
-            # крупные суммы модель сокращает до «1,5 млн»: допускаем округление до 1%
             if abs(value - k) <= abs(k) * 0.01:
                 return True
         elif abs(value - k) <= 0.05 or (value.is_integer() and round(k) == value):
@@ -98,8 +88,6 @@ def unknown_numbers(texts: list[str], data: Any) -> list[float]:
     return [n for t in texts for n in numbers_in_text(t) if not number_known(n, known)]
 
 
-# Ollama применяет схему как грамматику и обрывает текст на maxLength посреди слова.
-# Длину просим в промпте, а проверяет её pydantic: длинный ответ уходит в повтор или в шаблон.
 GRAMMAR_UNSAFE = {"maxLength", "maxItems", "minItems"}
 
 
@@ -122,8 +110,6 @@ def strings_in(data: Any) -> list[str]:
 
 
 class LlmClient:
-    """Один экземпляр на процесс: кеш ответов по хешу входа (8.1 п.7)."""
-
     def __init__(self) -> None:
         self.transport: httpx.AsyncBaseTransport | None = None
         self._cache: OrderedDict[str, LlmResult] = OrderedDict()
@@ -187,7 +173,6 @@ class LlmClient:
             "messages": [{"role": "system", "content": system}, user],
             "format": generation_schema(output.model_json_schema()),
             "stream": False,
-            # рассуждения модели не нужны: ответ короткий, а время ограничено LLM_TIMEOUT_MS
             "think": False,
             "options": {"temperature": settings.llm_temperature},
         }
@@ -209,7 +194,6 @@ class LlmClient:
             log.warning("ollama %s: %s", response.status_code, response.text[:200])
             return LlmResult(ok=False, model=model, ms=ms, reason="error")
         try:
-            # длинное и среднее тире в текстах запрещены (раздел 0 ТЗ): модель их всё равно ставит
             content = response.json()["message"]["content"].replace("\u2014", "-").replace("\u2013", "-")
             raw = json.loads(content)
         except (ValueError, KeyError, TypeError):

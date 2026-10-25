@@ -1,5 +1,3 @@
-"""Заявки клиента (К.8, К.9, К.11): создание, черновик, согласия, отправка, решение, подписание и выдача."""
-
 import uuid
 from dataclasses import dataclass, field
 from datetime import date
@@ -82,7 +80,6 @@ class ApplicationService:
         self.session = session
         self.external = external
 
-    # чтение
 
     async def get_app(self, ctx: ClientContext, app_id: uuid.UUID, *, lock: bool = False) -> Application:
         app = await self.session.get(Application, app_id, with_for_update=lock)
@@ -155,7 +152,6 @@ class ApplicationService:
     def data(self, ctx: ClientContext) -> CompanyData:
         return CompanyData(self.session, self.external, ctx.company)
 
-    # создание
 
     async def next_number(self) -> str:
         n = await self.session.scalar(text("SELECT nextval('application_number_seq')"))
@@ -311,7 +307,6 @@ class ApplicationService:
         if errors:
             raise validation("Условия вне пределов продукта", errors)
 
-    # черновик
 
     async def patch(self, ctx: ClientContext, app: Application, body: dict) -> None:
         await self.require_action(ctx, app, "application.edit")
@@ -340,7 +335,6 @@ class ApplicationService:
     async def requirements(self, ctx: ClientContext, app: Application) -> dict:
         return await requirements(self.session, app, self.data(ctx))
 
-    # согласия
 
     async def consent_challenge(self, ctx: ClientContext, app: Application, consent_type: str) -> dict:
         await self.require_action(ctx, app, "consent.sign")
@@ -382,7 +376,6 @@ class ApplicationService:
         req = await self.requirements(ctx, app)
         return next(i for i in req["items"] if i["code"] == consent_type)
 
-    # отправка
 
     async def submit(self, ctx: ClientContext, app: Application) -> None:
         await self.require_action(ctx, app, "application.submit")
@@ -447,7 +440,6 @@ class ApplicationService:
         transition(self.session, app, ApplicationStatus.CANCELLED, actor_of(ctx), description=reason or None)
         await close_tasks(self.session, application_id=app.id)
 
-    # решение банка
 
     async def accept_offer(self, ctx: ClientContext, app: Application) -> None:
         extras = await self.require_action(ctx, app, "offer.accept")
@@ -476,10 +468,8 @@ class ApplicationService:
         )
         await close_tasks(self.session, application_id=app.id)
 
-    # подписание
 
     async def start_signing(self, ctx: ClientContext, app: Application) -> None:
-        """Снимок правил подписи компании; первые по порядку получают задачу сразу."""
         rules_row = await self.session.get(SigningRules, ctx.company.id)
         rules = (
             rules_row.rules
@@ -679,7 +669,6 @@ class ApplicationService:
         )
 
     async def issue_loan(self, ctx: ClientContext, app: Application) -> Loan:
-        """Выдача смоделирована: кредит с графиком на основной счёт."""
         amount = app.approved_amount or app.requested_amount
         term = app.approved_term_months or app.requested_term_months
         calc = payment_schedule(amount, term, float(app.rate_percent), today())
@@ -702,7 +691,6 @@ class ApplicationService:
         self.session.add(loan)
         return loan
 
-    # запросы банка
 
     async def info_request(self, ctx: ClientContext, app: Application, request_id: uuid.UUID) -> InfoRequest:
         request = await self.session.get(InfoRequest, request_id)

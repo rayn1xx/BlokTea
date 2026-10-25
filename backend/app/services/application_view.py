@@ -1,5 +1,3 @@
-"""Представление заявки для клиента: ApplicationSummary/Detail, требования, подписание, available_actions."""
-
 import uuid
 from dataclasses import dataclass, field
 
@@ -7,11 +5,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain import state_machine as sm
-from app.domain.catalog import PRODUCTS_BY_CODE
+from app.domain.catalog import PRODUCTS_BY_CODE, STATUS_TITLES
 from app.domain.finance import monthly_payment
 from app.models import (
     Application,
     ApplicationEvent,
+    CallNote,
     Consent,
     Decision,
     InfoRequest,
@@ -61,8 +60,6 @@ SIGN_DOC_ACCUSATIVE = {
 
 @dataclass
 class AppExtras:
-    """То, что нужно для summary и не лежит в самой заявке."""
-
     tasks: list[Task] = field(default_factory=list)
     signing: SigningSession | None = None
     rules: dict | None = None
@@ -203,6 +200,22 @@ def summary(app: Application, ctx: ClientContext | None, extras: AppExtras, peop
     }
 
 
+def call_note_view(c: CallNote) -> dict:
+    return {
+        "id": str(c.id),
+        "stage": c.stage,
+        "stage_title": STATUS_TITLES.get(c.stage, c.stage).capitalize(),
+        "called_at": iso(c.called_at),
+        "duration_minutes": c.duration_minutes,
+        "topic": c.topic,
+        "summary": c.summary,
+        "agreements": list(c.agreements or []),
+        "next_step": c.next_step,
+        "next_step_due": c.next_step_due.isoformat() if c.next_step_due else None,
+        "author_name": c.author_name,
+    }
+
+
 def info_request_view(r: InfoRequest) -> dict:
     return {
         "id": str(r.id),
@@ -267,6 +280,11 @@ async def detail(
             select(InfoRequest).where(InfoRequest.application_id == app.id).order_by(InfoRequest.created_at)
         )
     )
+    calls = list(
+        await session.scalars(
+            select(CallNote).where(CallNote.application_id == app.id).order_by(CallNote.called_at.desc())
+        )
+    )
     decision = await session.scalar(
         select(Decision).where(Decision.application_id == app.id).order_by(Decision.created_at.desc()).limit(1)
     )
@@ -307,6 +325,7 @@ async def detail(
         ],
         "status_text": {"now": now_text, "next": next_text, "actor": actor, "due_at": due_at},
         "info_requests": [info_request_view(r) for r in info_requests],
+        "calls": [call_note_view(c) for c in calls],
         "decision": decision.payload if decision else None,
         "signing": signing_state(app, extras.signing, people, user_id),
         "version": app.version,
@@ -314,7 +333,6 @@ async def detail(
 
 
 async def requirements(session: AsyncSession, app: Application, data: CompanyData) -> dict:
-    """GET /applications/{id}/requirements (3.7)."""
     legal_form = data.company.legal_form.value
     day = today()
     consents = {c.type for c in await session.scalars(select(Consent).where(Consent.application_id == app.id))}

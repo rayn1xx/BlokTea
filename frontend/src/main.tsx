@@ -9,8 +9,7 @@ import { queryClient } from '@/shared/api/query';
 
 import '@alfalab/core-components-vars/bundle/corp.css';
 import '@alfalab/core-components-themes/corp.css';
-import './styles/fonts.css';
-import './styles/global.css';
+import './styles/index.css';
 
 setSessionExpiredHandler(() => {
   queryClient.clear();

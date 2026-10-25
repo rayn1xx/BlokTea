@@ -1,5 +1,3 @@
-"""Документы (К.12)."""
-
 import uuid
 from typing import Annotated, Literal
 from urllib.parse import quote
@@ -12,7 +10,6 @@ from app.services.documents import analyze_document_job, document_types
 
 router = APIRouter(tags=["documents"])
 
-# читаем не больше максимального размера типа + запас, остальное отсечёт проверка
 MAX_READ = 31 * 1024 * 1024
 
 
@@ -63,7 +60,6 @@ async def upload(
         info_request_id=info_request_id,
     )
     await session.commit()
-    # анализ моделью (И1-И3) идёт после ответа: клиент сразу видит документ в статусе analyzing
     if result["status"] == "analyzing":
         background.add_task(analyze_document_job, session_factory, uuid.UUID(result["id"]))
     return result

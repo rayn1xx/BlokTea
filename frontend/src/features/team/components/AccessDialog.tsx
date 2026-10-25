@@ -15,9 +15,9 @@ import { errorText, queryClient } from '@/shared/api/query';
 import { keys } from '@/shared/api/queryKeys';
 import { ROLE_LABELS } from '@/shared/i18n/ru';
 import type { Permission } from '@/shared/types/common';
-import { Avatar, Btn, Dialog, ModalFooter, Options, Stack, TextLink, Toggle } from '@/shared/ui';
+import { Avatar, Btn, Dialog, Grow, ModalFooter, Options, Stack, Text, TextLink, Toggle } from '@/shared/ui';
 
-import t from './team.module.css';
+import s from './team.module.css';
 
 export type Scope = 'assigned' | 'selected' | 'all';
 
@@ -39,14 +39,14 @@ const ACTIONS: ActionRow[] = [
 export function ActionToggles({ value, onChange }: { value: Permission[]; onChange: (v: Permission[]) => void }) {
   const toggle = (p: Permission, on: boolean) => onChange(on ? [...new Set([...value, p])] : value.filter((x) => x !== p));
   return (
-    <div className={t.actions}>
+    <div className={s.actions}>
       {ACTIONS.map((a) => (
-        <div key={a.key} className={t.actionRow}>
-          <a.icon className={t.actionIcon} />
-          <div style={{ flex: 1 }}>
-            <div className={t.actionTitle}>{a.title}</div>
-            <div className={t.muted}>{a.text}</div>
-          </div>
+        <div key={a.key} className={s.actionRow}>
+          <a.icon className={s.actionIcon} />
+          <Grow>
+            <div className={s.actionTitle}>{a.title}</div>
+            <div className={s.muted}>{a.text}</div>
+          </Grow>
           <Toggle label={a.title} checked={a.permission ? value.includes(a.permission) : true} disabled={!a.permission} onChange={(on) => a.permission && toggle(a.permission, on)} />
         </div>
       ))}
@@ -58,25 +58,25 @@ export function ExtraRights({ value, onChange }: { value: Permission[]; onChange
   const [open, setOpen] = useState(false);
   const toggle = (p: Permission, on: boolean) => onChange(on ? [...new Set([...value, p])] : value.filter((x) => x !== p));
   return (
-    <div className={t.extra}>
-      <button type='button' className={t.extraHead} onClick={() => setOpen((v) => !v)} aria-expanded={open}>
-        <GearMIcon className={t.actionIcon} />
+    <div className={s.extra}>
+      <button type='button' className={s.extraHead} onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+        <GearMIcon className={s.actionIcon} />
         <span style={{ flex: 1 }}>
-          <span className={t.actionTitle}>Дополнительные настройки</span>
-          <span className={t.muted}>Решения по предложениям банка и управление сотрудниками</span>
+          <span className={s.actionTitle}>Дополнительные настройки</span>
+          <span className={s.muted}>Решения по предложениям банка и управление сотрудниками</span>
         </span>
-        <span className={t.muted}>{open ? 'Свернуть' : 'Развернуть'}</span>
+        <span className={s.muted}>{open ? 'Свернуть' : 'Развернуть'}</span>
       </button>
       {open && (
-        <div className={t.actions} style={{ border: 0, marginTop: 4 }}>
+        <div className={s.actions} style={{ border: 0, marginTop: 4 }}>
           {(
             [
               ['accept_offers', 'Принимать предложения банка'],
               ['manage_team', 'Управлять сотрудниками'],
             ] as [Permission, string][]
           ).map(([p, title]) => (
-            <div key={p} className={t.actionRow}>
-              <div style={{ flex: 1 }} className={t.actionTitle}>
+            <div key={p} className={s.actionRow}>
+              <div style={{ flex: 1 }} className={s.actionTitle}>
                 {title}
               </div>
               <Toggle label={title} checked={value.includes(p)} onChange={(on) => toggle(p, on)} />
@@ -119,35 +119,35 @@ export function AccessDialog({ member, assigned, onClose }: { member: Member; as
       }
     >
       <Stack gap={18}>
-        <div className={t.person}>
+        <div className={s.person}>
           <Avatar name={name} large />
           <div>
             <b>{name}</b>
-            <div className={t.muted}>{ROLE_LABELS[member.role]}</div>
+            <div className={s.muted}>{ROLE_LABELS[member.role]}</div>
           </div>
         </div>
         <div>
-          <div className={t.groupTitle}>К каким заявкам есть доступ</div>
+          <div className={s.groupTitle}>К каким заявкам есть доступ</div>
           <Options radio columns={1} options={SCOPE_OPTIONS} value={scope} onChange={setScope} />
-          {scope === 'assigned' && assigned && <div className={t.assigned}>Сейчас назначена {assigned}</div>}
+          {scope === 'assigned' && assigned && <div className={s.assigned}>Сейчас назначена {assigned}</div>}
         </div>
         <div>
-          <div className={t.groupTitle}>Разрешённые действия</div>
+          <div className={s.groupTitle}>Разрешённые действия</div>
           <ActionToggles value={perms} onChange={setPerms} />
         </div>
-        <div className={t.signRow}>
-          <LockClosedMIcon className={t.actionIcon} />
-          <div style={{ flex: 1 }}>
-            <div className={t.actionTitle}>Подписание документов</div>
-            <div className={perms.includes('sign') ? t.granted : t.denied}>{perms.includes('sign') ? 'Предоставлено' : 'Не предоставлено'}</div>
-            <div className={t.muted}>Требуется подтверждение полномочий</div>
-          </div>
+        <div className={s.signRow}>
+          <LockClosedMIcon className={s.actionIcon} />
+          <Grow>
+            <div className={s.actionTitle}>Подписание документов</div>
+            <div className={perms.includes('sign') ? s.granted : s.denied}>{perms.includes('sign') ? 'Предоставлено' : 'Не предоставлено'}</div>
+            <div className={s.muted}>Требуется подтверждение полномочий</div>
+          </Grow>
           <TextLink arrow onClick={() => navigate('/team/signing')}>
             Как подключить
           </TextLink>
         </div>
         <ExtraRights value={perms} onChange={setPerms} />
-        {error && <div style={{ color: 'var(--a-red)' }}>{error}</div>}
+        {error && <Text color='negative' tag='div'>{error}</Text>}
       </Stack>
     </Dialog>
   );

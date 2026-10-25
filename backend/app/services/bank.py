@@ -1,7 +1,5 @@
-"""Банковский кабинет (К.14): очередь, карточка аналитика, решение, показатели и настройки скоринга."""
-
 import uuid
-from datetime import timedelta
+from datetime import date, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,13 +10,14 @@ from app.domain import scoring, texts
 from app.domain import state_machine as sm
 from app.domain.catalog import DOCUMENT_TYPES_BY_CODE, PRODUCTS_BY_CODE
 from app.domain.facts import low_months
-from app.domain.finance import Thresholds
+from app.domain.finance import Thresholds, threshold_errors
 from app.integrations.external import ExternalSystems
 from app.models import (
     Application,
     ApplicationEvent,
     ApplicationStatus,
     AuditLog,
+    CallNote,
     Company,
     Decision,
     Document,
@@ -31,7 +30,7 @@ from app.services.application_view import detail, load_extras, summary
 from app.services.common import THRESHOLDS_KEY, People, iso, now, parse_dt, thresholds
 from app.services.company_data import CompanyData
 from app.services.documents import DocumentService
-from app.services.events import Actor, audit, transition
+from app.services.events import Actor, add_event, audit, notify, transition
 from app.services.review import (
     apply_decision,
     check_view,
@@ -50,7 +49,6 @@ def bank_actor(user: User) -> Actor:
 def bank_person(user: User | None) -> dict | None:
     if user is None:
         return None
-    # у сотрудника банка нет роли в компании; роль заполняем нейтральной
     return {"user_id": str(user.id), "name": user.short_name, "role": "authorized_employee"}
 
 
@@ -87,7 +85,6 @@ class BankService:
         return app
 
     async def ensure_scoring(self, app: Application) -> None:
-        """У заявок без автопроверок (например, из seed) проверки считаются при первом открытии."""
         if await latest_scoring(self.session, app.id) is None:
             company = await self.session.get(Company, app.company_id)
             await run_checks(self.session, app, CompanyData(self.session, self.external, company))
@@ -236,8 +233,54 @@ class BankService:
             app.queued_at = now()
         audit(self.session, actor=bank_actor(user), action="Взял в работу", entity="application", entity_id=app.id)
 
+    async def add_call(self, user: User, app: Application, body: dict) -> None:
+        topic = (body.get("topic") or "").strip()
+        summary_text = (body.get("summary") or "").strip()
+        errors = {}
+        if not topic:
+            errors["topic"] = "Укажите тему звонка"
+        if not summary_text:
+            errors["summary"] = "Опишите, о чём договорились"
+        due = None
+        if body.get("next_step_due"):
+            try:
+                due = date.fromisoformat(body["next_step_due"])
+            except ValueError:
+                errors["next_step_due"] = "Дата в формате ГГГГ-ММ-ДД"
+        if body.get("duration_minutes") is not None and not 0 < body["duration_minutes"] <= 600:
+            errors["duration_minutes"] = "От 1 до 600 минут"
+        if errors:
+            raise validation("Проверьте поля", errors)
+        note = CallNote(
+            application_id=app.id,
+            stage=app.status.value,
+            called_at=now(),
+            duration_minutes=body.get("duration_minutes"),
+            topic=topic,
+            summary=summary_text,
+            agreements=[a.strip() for a in body.get("agreements") or [] if a and a.strip()],
+            next_step=(body.get("next_step") or "").strip() or None,
+            next_step_due=due,
+            author_id=user.id,
+            author_name=user.short_name,
+            created_at=now(),
+        )
+        self.session.add(note)
+        actor = bank_actor(user)
+        add_event(self.session, app, title="Звонок с банком", description=topic, actor=actor)
+        audit(
+            self.session, actor=actor, action="Записал итоги звонка", entity="application", entity_id=app.id, details=topic
+        )
+        notify(
+            self.session,
+            [app.created_by, app.handoff_to],
+            title=f"Итоги звонка по заявке {app.number}",
+            text=topic,
+            application_id=app.id,
+            route=f"/applications/{app.id}",
+        )
+
     async def ai_summary(self, user: User, app: Application) -> None:
-        """И7: резюме из фактов от модели или из шаблона; решение принимает аналитик."""
         await self.ensure_scoring(app)
         company = await self.session.get(Company, app.company_id)
         result = await latest_scoring(self.session, app.id)
@@ -281,7 +324,6 @@ class BankService:
             "generated_at": iso(now()),
         }
         lows = low_months(facts.months)
-        # в модель только факты для решения: без ФИО, паспортов и счетов (8.1 п.6)
         facts_for_llm = {
             "product": PRODUCTS_BY_CODE[app.product_code]["name"],
             "requested": {"amount_rub": ai.rubles(app.requested_amount), "term_months": app.requested_term_months},
@@ -304,7 +346,6 @@ class BankService:
                 if d.status == "rejected" or any(i["severity"] != "info" for i in (d.analysis or {}).get("issues", []))
             ],
             "client_warning_accepted": app.client_warning_accepted,
-            # название компании убираем: у ИП это ФИО
             "facts_text": template["text"].replace(company.short_name, "Компания"),
         }
         app.ai_summary = await ai.analyst_summary(facts_for_llm, template)
@@ -363,13 +404,24 @@ class BankService:
         elif kind == "reject":
             if not body.get("reason_codes"):
                 errors["reason_codes"] = "Выберите причину"
+            elif "other" in body["reason_codes"] and not (body.get("comment") or "").strip():
+                errors["comment"] = "Опишите причину отказа"
         elif kind != "approve":
             errors["type"] = "approve, counter_offer, request_info или reject"
         if errors:
             raise validation("Проверьте поля", errors)
 
+    async def require_scoring_reason(self, app: Application, body: dict) -> None:
+        result = await latest_scoring(self.session, app.id)
+        outcome = result.payload.get("outcome") if result else None
+        kind = body.get("type")
+        against = (kind == "approve" and outcome in ("rejected", "counter_offer", "manual_review")) or (
+            kind == "reject" and outcome == "approved"
+        )
+        if against and not (body.get("comment") or "").strip():
+            raise validation("Проверьте поля", {"comment": "Решение отличается от скоринга: напишите причину"})
+
     async def build_decision(self, app: Application, body: dict) -> dict:
-        """Decision по телу решения аналитика; тексты для клиента от модели (И5, И8) или из шаблонов."""
         return await ai.decision_texts(await self.decision_template(app, body))
 
     async def decision_template(self, app: Application, body: dict) -> dict:
@@ -389,6 +441,7 @@ class BankService:
                 requested_load,
                 t,
                 reason_codes=body.get("reason_codes"),
+                reason_comment=body.get("comment"),
             )
         offer = {
             "product_code": body.get("product_code") or app.product_code,
@@ -419,6 +472,7 @@ class BankService:
 
     async def decide(self, user: User, app: Application, body: dict) -> None:
         self.validate_decision(body)
+        await self.require_scoring_reason(app, body)
         if app.status != ApplicationStatus.IN_REVIEW:
             raise invalid_transition("Решение принимают по заявке на рассмотрении")
         app.bank_assignee_id = app.bank_assignee_id or user.id
@@ -508,11 +562,7 @@ class BankService:
             )
         except (KeyError, TypeError, ValueError) as e:
             raise validation("Проверьте поля", {"body": "Нужны все пороги числами"}) from e
-        errors = {}
-        if not 0 <= t.manual_review_min <= t.counter_offer_min <= t.approve_min <= 100:
-            errors["approve_min"] = "Пороги по возрастанию: ручная проверка ≤ другие условия ≤ одобрение ≤ 100"
-        if not 0 < t.load_target_percent <= t.load_threshold_percent <= 100:
-            errors["load_target_percent"] = "Целевая нагрузка не выше порога"
+        errors = threshold_errors(t)
         if errors:
             raise validation("Проверьте поля", errors)
         row = await self.session.get(Setting, THRESHOLDS_KEY)

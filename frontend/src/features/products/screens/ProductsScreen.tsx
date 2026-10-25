@@ -15,9 +15,9 @@ import { useCurrentHome } from '@/features/profile/components/AppShell/AppShell'
 import { errorText, invalidateApplication, queryClient } from '@/shared/api/query';
 import { PURPOSE_LABELS } from '@/shared/i18n/ru';
 import { formatMoney, formatMonths, formatNumberInput, formatPercent, parseNumberInput, rubToMoney } from '@/shared/lib/format';
-import { Box, Btn, Field, PageHead, Pill, QueryGate, SelectField, Stack, TextField, TextLink } from '@/shared/ui';
+import { Btn, Card, Field, PageHead, Pill, QueryGate, SelectField, Stack, TextField, TextLink } from '@/shared/ui';
 
-import p from '../products.module.css';
+import p from './ProductsScreen.module.css';
 
 const COLLATERAL_TEXT = { none: 'Без залога', optional: 'Залог по желанию', required: 'Нужен залог' };
 
@@ -211,7 +211,7 @@ function Calculator({ product, recommendation, onCreated }: { product: Product; 
   ];
 
   return (
-    <Box className={p.calc}>
+    <Card className={p.calc}>
       <div className={p.calcTitle}>Выбранный вариант</div>
       <div className={p.calcProduct}>{product.name}</div>
       <div className={p.calcSection}>Расчёт условий</div>
@@ -239,6 +239,6 @@ function Calculator({ product, recommendation, onCreated }: { product: Product; 
       <div className={p.calcNote} style={{ marginTop: 10 }}>
         Предварительные демо-условия. Не является одобрением.
       </div>
-    </Box>
+    </Card>
   );
 }

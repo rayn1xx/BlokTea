@@ -16,7 +16,7 @@ import { keys } from '@/shared/api/queryKeys';
 import { ROLE_LABELS, SIGNING_DOCUMENT_LABELS } from '@/shared/i18n/ru';
 import { appNo } from '@/shared/lib/format';
 import type { UserRole } from '@/shared/types/common';
-import { Accordion, Btn, Dialog, InfoLine, ModalFooter, Options, Pill, SelectField, SkeletonLines, Stack, TextLink } from '@/shared/ui';
+import { Accordion, Btn, Dialog, InfoLine, ModalFooter, Options, Pill, Row, SelectField, SkeletonLines, Stack, Text, TextLink } from '@/shared/ui';
 
 type Card = { key: string; document: keyof typeof SIGNING_DOCUMENT_LABELS; name: string; text: string; status?: string };
 
@@ -118,12 +118,12 @@ export function SigningTab() {
           </TextLink>
         )}
       </section>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+      <Row gap={16}>
         <Btn variant='outline' size='l' disabled={!isOwner} onClick={() => setEdit('signers')}>
           Запросить изменение подписанта
         </Btn>
         <span className={t.muted}>Изменения применяются после проверки полномочий и подготовки документов.</span>
-      </div>
+      </Row>
       {deal && (
         <TextLink tone='blue' onClick={() => navigate(`/applications/${deal}`)}>
           ← К заявке {appNo(apps.data?.items.find((a) => a.id === deal)?.number ?? '')}
@@ -197,7 +197,7 @@ function RulesEditor({ mode, rules, onClose }: { mode: 'senders' | 'signers'; ru
             </div>
           ))
         )}
-        {error && <div style={{ color: 'var(--a-red)' }}>{error}</div>}
+        {error && <Text color='negative' tag='div'>{error}</Text>}
       </Stack>
     </Dialog>
   );

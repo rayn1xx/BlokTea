@@ -1,5 +1,3 @@
-"""DI: фабрики зависимостей FastAPI: собирают слои db -> service для каждого запроса."""
-
 from collections.abc import AsyncIterator, Callable
 from datetime import timedelta
 from functools import lru_cache
@@ -35,7 +33,6 @@ SessionDep = Annotated[AsyncSession, Depends(get_session)]
 RedisDep = Annotated[Redis, Depends(get_redis)]
 
 
-# без состояния между запросами: один экземпляр на процесс
 @lru_cache
 def get_password_hasher() -> PasswordHasher:
     return PasswordHasher()
@@ -51,7 +48,6 @@ def get_token_factory() -> TokenFactory:
     )
 
 
-# фоновые задачи (автопроверки после submit) открывают свою сессию и свой клиент к мокам
 def get_session_factory() -> async_sessionmaker[AsyncSession]:
     return SessionFactory
 
@@ -72,7 +68,6 @@ async def get_external(factory: ExternalFactoryDep) -> AsyncIterator[ExternalSys
 ExternalDep = Annotated[ExternalSystems, Depends(get_external)]
 
 
-# репозитории и сервисы: на каждый запрос; FastAPI кеширует зависимости, поэтому сессия общая
 def get_user_repository(session: SessionDep) -> UserRepository:
     return UserRepository(session)
 
@@ -190,8 +185,6 @@ BankAdminDep = Annotated[User, Depends(get_bank_admin)]
 
 
 def rate_limit(name: str, limit_setting: str) -> Callable:
-    """Не больше N попыток за окно на ключ (IP для входа, пользователь и путь для кодов)."""
-
     async def dependency(request: Request, redis: RedisDep) -> None:
         limit = getattr(settings, limit_setting)
         auth = request.headers.get("authorization", "")

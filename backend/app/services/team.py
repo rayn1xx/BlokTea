@@ -1,5 +1,3 @@
-"""Команда, приглашения и правила подписи (К.5), вход по приглашению (К.2)."""
-
 import hashlib
 import secrets
 import string
@@ -26,7 +24,6 @@ def hash_invite(code: str) -> str:
 
 
 def new_invite_code() -> str:
-    """«4821-KX»: 4 цифры и 2 латинские буквы."""
     digits = f"{1000 + secrets.randbelow(9000)}"
     letters = "".join(secrets.choice(string.ascii_uppercase) for _ in range(2))
     return f"{digits}-{letters}"
@@ -248,7 +245,6 @@ class TeamService:
 
 
 async def accept_invite(session: AsyncSession, hasher: PasswordHasher, body: dict) -> dict:
-    """POST /auth/invite/accept: пользователь создаётся, доступ ждёт подтверждения собственника."""
     code = (body.get("invite_code") or "").strip().upper()
     member = await session.scalar(select(Member).where(Member.invite_code_hash == hash_invite(code))) if code else None
     if member is None or member.status != MemberStatus.INVITED:

@@ -1,5 +1,3 @@
-"""Платёж, график и долговая нагрузка (раздел 3.1 ТЗ). Все суммы в копейках."""
-
 from dataclasses import dataclass
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
@@ -10,7 +8,6 @@ def money(value: int) -> dict:
 
 
 def round_rubles(kopecks: Decimal | float) -> int:
-    """Округление до целого рубля. Контрольный пример 3.1 (96 973 ₽) сходится с математическим округлением."""
     rubles = (Decimal(str(kopecks)) / 100).quantize(Decimal(1), rounding=ROUND_HALF_UP)
     return int(rubles) * 100
 
@@ -20,7 +17,6 @@ def round1(value: float) -> float:
 
 
 def annuity_payment(amount: int, months: int, rate_percent: float) -> int:
-    """payment = S × r / (1 - (1 + r)^-n), r = rate / 12 / 100; результат в копейках, целые рубли."""
     if months <= 0 or amount <= 0:
         return 0
     r = Decimal(str(rate_percent)) / 1200
@@ -31,7 +27,6 @@ def annuity_payment(amount: int, months: int, rate_percent: float) -> int:
 
 
 def overdraft_payment(limit: int, rate_percent: float) -> int:
-    """Овердрафт гасится поступлениями, в нагрузку берём только проценты за месяц на весь лимит (допущение)."""
     return round_rubles(Decimal(limit) * Decimal(str(rate_percent)) / 1200)
 
 
@@ -49,7 +44,6 @@ def add_months(start: date, months: int) -> date:
 
 
 def payment_schedule(amount: int, months: int, rate_percent: float, start: date) -> dict:
-    """Аннуитетный график: PaymentCalcResponse из К.7."""
     payment = annuity_payment(amount, months, rate_percent)
     r = Decimal(str(rate_percent)) / 1200
     balance = amount
@@ -102,7 +96,25 @@ class Thresholds:
         }
 
 
-# если свободный поток не положительный, нагрузка не считается; отдаём заведомо высокий процент
+def threshold_errors(t: Thresholds) -> dict[str, str]:
+    errors = {}
+    if t.approve_min > 100:
+        errors["approve_min"] = "Не больше 100 баллов"
+    if t.counter_offer_min > t.approve_min:
+        errors["counter_offer_min"] = f"Не выше порога автоодобрения: {t.approve_min}"
+    if t.manual_review_min < 0:
+        errors["manual_review_min"] = "Не меньше 0 баллов"
+    elif t.manual_review_min > t.counter_offer_min:
+        errors["manual_review_min"] = f"Не выше порога других условий: {t.counter_offer_min}"
+    if t.load_threshold_percent > 100:
+        errors["load_threshold_percent"] = "Не больше 100%"
+    if t.load_target_percent <= 0:
+        errors["load_target_percent"] = "Больше 0%"
+    elif t.load_target_percent > t.load_threshold_percent:
+        errors["load_target_percent"] = f"Не выше порога нагрузки: {t.load_threshold_percent:g}%"
+    return errors
+
+
 LOAD_NOT_COMPUTABLE = 999.9
 
 
@@ -113,7 +125,6 @@ def load_percent(new_payment: int, current_payments: int, free_cash_flow: int) -
 
 
 def load_calc(free_cash_flow: int, current_payments: int, new_payment: int, thresholds: Thresholds) -> dict:
-    """LoadCalc из К.7."""
     return {
         "free_cash_flow": money(free_cash_flow),
         "current_payments": money(current_payments),
@@ -161,3 +172,24 @@ def plural(n: int, one: str, few: str, many: str) -> str:
     if 2 <= n <= 4:
         return few
     return many
+
+
+def payment_history(
+    amount: int, term: int, rate_percent: float, balance: int, paid_months: int, next_payment: date
+) -> list[dict]:
+    paid_months = max(0, min(paid_months, term))
+    if not paid_months:
+        return []
+    rows = payment_schedule(amount, term, rate_percent, next_payment)["schedule"][:paid_months]
+    early = max(rows[-1]["balance"]["value"] - balance, 0)
+    history = []
+    for i, row in enumerate(rows):
+        history.append(
+            {
+                "date": add_months(next_payment, i - paid_months).isoformat(),
+                "principal": row["principal"],
+                "interest": row["interest"],
+                "early": money(early if i == paid_months - 1 else 0),
+            }
+        )
+    return history

@@ -1,9 +1,3 @@
-"""Справочники прототипа: продукты, типы документов, роли и права, шаблоны запросов банка.
-
-Деньги в копейках. Продукты с is_fictional=True придуманы командой, у остальных условия по данным
-агрегаторов (source_note) и требуют сверки с alfabank.ru.
-"""
-
 from typing import Any
 
 ROLES = (
@@ -17,7 +11,6 @@ ROLES = (
 
 PERMISSIONS = ("submit_applications", "upload_documents", "sign", "accept_offers", "manage_team")
 
-# права по умолчанию (таблица К.5, допущение команды)
 DEFAULT_PERMISSIONS: dict[str, list[str]] = {
     "owner": ["submit_applications", "upload_documents", "sign", "accept_offers", "manage_team"],
     "director": ["submit_applications", "upload_documents", "sign", "accept_offers"],
@@ -366,7 +359,6 @@ def document_title(code: str) -> str:
     return DOCUMENT_TYPES_BY_CODE.get(code, {}).get("title", code)
 
 
-# что формирует Альфа-Бизнес по POST /documents/from-lk: kind -> тип документа
 FROM_LK_KINDS = {
     "bank_statement": "bank_statement",
     "tax_data": "tax_return",
@@ -407,11 +399,11 @@ REJECTION_REASONS = [
     {"code": "tax_debt", "title": "Задолженность по налогам"},
     {"code": "business_age", "title": "Небольшой срок работы бизнеса"},
     {"code": "docs_mismatch", "title": "Документы не подтверждают данные заявки"},
+    {"code": "other", "title": "Другая"},
 ]
 
 REJECTION_REASON_TITLES = {r["code"]: r["title"] for r in REJECTION_REASONS}
 
-# баллы отрасли по ОКВЭД (допущение команды): самый длинный совпавший префикс
 INDUSTRY_POINTS = {
     "25.62": 9,
     "25": 9,

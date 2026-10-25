@@ -37,11 +37,18 @@ services:
     build: ./backend
     environment:
       MOCKS_DOWN: ${MOCKS_DOWN:-}
-    command: ["uvicorn", "mocks.main:app", "--host", "0.0.0.0", "--port", "8100"]
+    command:
+      ["uvicorn", "mocks.main:app", "--host", "0.0.0.0", "--port", "8100"]
     ports:
       - "8100:8100"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/health')"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8100/health')",
+        ]
       interval: 3s
       timeout: 3s
       retries: 10
@@ -69,7 +76,12 @@ services:
       OLLAMA_HOST: http://ollama:11434
       LLM_MODEL_TEXT: ${LLM_MODEL_TEXT:-qwen3.5:9b}
       LLM_MODEL_VISION: ${LLM_MODEL_VISION:-}
-    entrypoint: ["sh", "-c", "ollama pull \"$$LLM_MODEL_TEXT\" && if [ -n \"$$LLM_MODEL_VISION\" ]; then ollama pull \"$$LLM_MODEL_VISION\"; fi"]
+    entrypoint:
+      [
+        "sh",
+        "-c",
+        'ollama pull "$$LLM_MODEL_TEXT" && if [ -n "$$LLM_MODEL_VISION" ]; then ollama pull "$$LLM_MODEL_VISION"; fi',
+      ]
     restart: "no"
     depends_on:
       ollama:
@@ -94,7 +106,12 @@ services:
       UPLOAD_DIR: /app/data/uploads
       OLLAMA_BASE_URL: http://ollama:11434
     # миграции, затем демо-данные (если SEED_DEMO=true и базы ещё нет)
-    command: ["sh", "-c", "alembic upgrade head && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+    command:
+      [
+        "sh",
+        "-c",
+        "alembic upgrade head && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000",
+      ]
     ports:
       - "8000:8000"
     volumes:
@@ -107,7 +124,13 @@ services:
       mocks:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')",
+        ]
       interval: 5s
       timeout: 5s
       retries: 20

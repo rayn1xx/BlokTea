@@ -1,0 +1,45 @@
+.lead {
+  font-size: 15px;
+  line-height: 21px;
+}
+
+.small {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--a-text-2);
+}
+
+.required {
+  color: var(--a-red);
+}
+
+.two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.divider {
+  height: 1px;
+  background: var(--a-border);
+}
+
+.error {
+  color: var(--a-red);
+  font-size: 14px;
+}
+
+.sectionTitle {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+@media (max-width: 767px) {
+  .two {
+    grid-template-columns: 1fr;
+  }
+}

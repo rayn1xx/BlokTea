@@ -1,5 +1,3 @@
-"""Общее для сервисов: время, контекст пользователя, люди, пороги."""
-
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
@@ -26,7 +24,6 @@ def today() -> date:
 
 
 def iso(value: datetime | date | None) -> str | None:
-    """Даты для API: ISO 8601 с часовым поясом Москвы."""
     if value is None:
         return None
     if isinstance(value, datetime):
@@ -48,7 +45,6 @@ def end_of_day(d: date) -> datetime:
 
 
 def last_full_months(day: date) -> tuple[date, date]:
-    """Последние 12 полных месяцев до текущего."""
     end = day.replace(day=1) - timedelta(days=1)
     start = (date(end.year - 1, end.month, 1) + timedelta(days=32)).replace(day=1)
     return start, end
@@ -110,11 +106,9 @@ def default_permissions(role: str) -> list[str]:
 
 
 class People:
-    """Пользователи и сотрудники компании для Person и «Ждём: …»; грузится один раз на запрос."""
-
     def __init__(self, users: dict[uuid.UUID, User], members: dict[uuid.UUID, Member], director_id: uuid.UUID | None):
         self.users = users
-        self.members = members  # по user_id
+        self.members = members
         self.director_id = director_id
 
     @classmethod
@@ -137,7 +131,6 @@ class People:
         return {"user_id": str(user_id), "name": name, "role": member.role.value if member else "authorized_employee"}
 
     def title(self, user_id: uuid.UUID) -> str:
-        """«Малькина А. В. (бухгалтер)»"""
         from app.domain.catalog import ROLE_TITLES
 
         p = self.person(user_id) or {"name": "Сотрудник", "role": "authorized_employee"}

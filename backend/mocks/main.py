@@ -1,11 +1,3 @@
-"""Сервис моков внешних систем (раздел 4 ТЗ): Альфа-Бизнес, ЕГРЮЛ/ЕГРИП, реестр МСП, БКИ, ФНС.
-
-Все ответы синтетические и отдаются по ИНН из seed; неизвестный ИНН даёт 404. Каждый ответ с заголовком X-Mock: true.
-MOCKS_DOWN=bki,fns выключает системы (503), чтобы показать сценарий «источник недоступен».
-
-Запуск: uvicorn mocks.main:app --port 8100
-"""
-
 import os
 from datetime import date, timedelta
 
@@ -117,7 +109,6 @@ class StatementRequest(BaseModel):
 
 
 def simple_pdf(lines: list[str]) -> bytes:
-    """Минимальный валидный PDF с текстом (латиница: стандартный шрифт без кириллицы)."""
     text = "\n".join(f"({line}) Tj 0 -18 Td" for line in lines)
     stream = f"BT /F1 12 Tf 50 780 Td {text} ET".encode()
     objects = [

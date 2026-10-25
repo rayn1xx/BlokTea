@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { Button } from '@alfalab/core-components/button';
 import { Typography } from '@alfalab/core-components/typography';
 
+import { CallList } from '@/features/applications/components/CallCard';
 import { StatusLabel } from '@/features/applications/components/StatusLabel';
 import { bankApi } from '@/features/bank/api';
+import { CallNoteForm } from '@/features/bank/components/CallNoteForm';
 import { useBankApplication } from '@/features/bank/hooks';
 import type { BankApplicationDetail, CheckResult } from '@/features/bank/types';
 import { errorText, queryClient } from '@/shared/api/query';
@@ -13,7 +14,7 @@ import { keys } from '@/shared/api/queryKeys';
 import { DOCUMENT_STATUS, TEXTS } from '@/shared/i18n/ru';
 import { businessAge } from '@/shared/lib/business';
 import { formatDateTime, formatMoney, formatPercent } from '@/shared/lib/format';
-import { AiBadge, Card, CardTitle, InfoRow, InfoRows, Note, PageHeader, Progress, QueryGate, Row, SmallTag, SourceTag, Stack, Text, ToneLabel, uiStyles as s } from '@/shared/ui';
+import { AiBadge, Bar, Btn, Card, Grid, InfoRow, InfoRows, Note, PageHead, QueryGate, Row, SmallTag, SourceTag, Stack, Table, Text, ToneLabel } from '@/shared/ui';
 
 const CHECK_TITLES: Record<CheckResult['source'], string> = {
   registry: 'ЕГРЮЛ / ЕГРИП',
@@ -32,6 +33,7 @@ export function BankApplicationScreen() {
 function BankApplicationView({ app }: { app: BankApplicationDetail }) {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [callOpen, setCallOpen] = useState(false);
   const set = (d: BankApplicationDetail) => queryClient.setQueryData(keys.bankApplication(app.id), d);
 
   const summary = useMutation({ mutationFn: () => bankApi.aiSummary(app.id), onSuccess: set, onError: (e) => setError(errorText(e)) });
@@ -44,19 +46,19 @@ function BankApplicationView({ app }: { app: BankApplicationDetail }) {
 
   return (
     <div>
-      <PageHeader
+      <PageHead
         title={`Заявка ${app.number}`}
         subtitle={`${company.short_name} · ${app.product.name} · ${formatMoney(app.requested_amount)} на ${app.requested_term_months} мес.`}
         right={
           <Row gap={12}>
             <StatusLabel status={app.status} />
-            <Button view='secondary' size={40} onClick={() => navigate('/bank/queue')}>
+            <Btn variant='outline' onClick={() => navigate('/bank/queue')}>
               К очереди
-            </Button>
+            </Btn>
             {canDecide && (
-              <Button view='primary' size={40} onClick={() => navigate(`/bank/applications/${app.id}/decision`)}>
+              <Btn onClick={() => navigate(`/bank/applications/${app.id}/decision`)}>
                 Принять решение
-              </Button>
+              </Btn>
             )}
           </Row>
         }
@@ -71,17 +73,15 @@ function BankApplicationView({ app }: { app: BankApplicationDetail }) {
         )}
         {error && <Note tone='negative'>{error}</Note>}
 
-        <div className={s.grid2}>
-          <Card>
-            <CardTitle
-              right={
-                <Button view='transparent' size={32} onClick={() => rerun.mutate()} loading={rerun.isPending}>
-                  Повторить проверки
-                </Button>
-              }
-            >
-              Автопроверки
-            </CardTitle>
+        <Grid>
+          <Card
+            title='Автопроверки'
+            right={
+              <Btn variant='ghost' size='s' onClick={() => rerun.mutate()} loading={rerun.isPending}>
+                Повторить проверки
+              </Btn>
+            }
+          >
             <Stack gap={12}>
               {app.checks.map((c) => (
                 <div key={c.source}>
@@ -102,11 +102,10 @@ function BankApplicationView({ app }: { app: BankApplicationDetail }) {
             </Stack>
           </Card>
 
-          <Card>
-            <CardTitle right={<Typography.Title tag='div' view='small' weight='bold'>{sc.total}</Typography.Title>}>Скоринг</CardTitle>
+          <Card title='Скоринг' right={<Typography.Title tag='div' view='small' weight='bold'>{sc.total}</Typography.Title>}>
             <Stack gap={12}>
               {sc.factors.map((f) => (
-                <div key={f.code}>
+                <Stack key={f.code} gap={4}>
                   <Row justify='space-between'>
                     <Text small>
                       {f.title}: {f.value_text}
@@ -115,10 +114,8 @@ function BankApplicationView({ app }: { app: BankApplicationDetail }) {
                       {f.points} из {f.max_points}
                     </Text>
                   </Row>
-                  <div style={{ marginTop: 4 }}>
-                    <Progress value={(f.points / f.max_points) * 100} tone={f.points / f.max_points >= 0.6 ? 'positive' : f.points / f.max_points >= 0.3 ? 'attention' : 'negative'} />
-                  </div>
-                </div>
+                  <Bar value={(f.points / f.max_points) * 100} tone={f.points / f.max_points >= 0.6 ? 'green' : f.points / f.max_points >= 0.3 ? 'yellow' : 'red'} />
+                </Stack>
               ))}
               <Text small secondary>
                 Пороги: одобрение от {sc.thresholds.approve_min}, другие условия от {sc.thresholds.counter_offer_min}, ручное рассмотрение от {sc.thresholds.manual_review_min}. Нагрузка до {sc.thresholds.load_threshold_percent}%
@@ -130,11 +127,10 @@ function BankApplicationView({ app }: { app: BankApplicationDetail }) {
               {sc.stop_factors.length > 0 && <Note tone='negative'>Стоп-факторы: {sc.stop_factors.join(', ')}</Note>}
             </Stack>
           </Card>
-        </div>
+        </Grid>
 
-        <div className={s.grid2}>
-          <Card>
-            <CardTitle>Финансы и нагрузка</CardTitle>
+        <Grid>
+          <Card title='Финансы и нагрузка'>
             <InfoRows>
               <InfoRow label='Компания'>
                 {company.short_name}, {businessAge(company.registration_date)}
@@ -162,16 +158,14 @@ function BankApplicationView({ app }: { app: BankApplicationDetail }) {
             </InfoRows>
           </Card>
 
-          <Card>
-            <CardTitle
-              right={
-                <Button view='transparent' size={32} onClick={() => summary.mutate()} loading={summary.isPending}>
-                  Обновить резюме
-                </Button>
-              }
-            >
-              ИИ-резюме
-            </CardTitle>
+          <Card
+            title='ИИ-резюме'
+            right={
+              <Btn variant='ghost' size='s' onClick={() => summary.mutate()} loading={summary.isPending}>
+                Обновить резюме
+              </Btn>
+            }
+          >
             {app.ai_summary ? (
               <Stack gap={12}>
                 <AiBadge source={app.ai_summary.text_source} hint={false} />
@@ -209,15 +203,29 @@ function BankApplicationView({ app }: { app: BankApplicationDetail }) {
               </Stack>
             )}
           </Card>
-        </div>
+        </Grid>
 
-        <Card>
-          <CardTitle>Документы</CardTitle>
+        <Card
+          title='Звонки с клиентом'
+          right={
+            !callOpen && (
+              <Btn variant='ghost' size='s' onClick={() => setCallOpen(true)}>
+                Записать итоги звонка
+              </Btn>
+            )
+          }
+        >
+          <Stack gap={14}>
+            {callOpen && <CallNoteForm app={app} onDone={() => setCallOpen(false)} />}
+            <CallList calls={app.calls} empty='Звонков пока не было. Запишите итоги после разговора: клиент увидит их в карточке заявки' />
+          </Stack>
+        </Card>
+
+        <Card title='Документы'>
           {app.documents.length === 0 ? (
             <Text secondary>Документов нет</Text>
           ) : (
-            <div className={s.tableScroll}>
-              <table className={s.table}>
+            <Table variant='plain'>
                 <thead>
                   <tr>
                     <th>Документ</th>
@@ -260,14 +268,12 @@ function BankApplicationView({ app }: { app: BankApplicationDetail }) {
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
+            </Table>
           )}
         </Card>
 
-        <div className={s.grid2}>
-          <Card>
-            <CardTitle>История</CardTitle>
+        <Grid>
+          <Card title='История'>
             <Stack gap={10}>
               {[...app.timeline].reverse().map((e, i) => (
                 <div key={i}>
@@ -282,8 +288,7 @@ function BankApplicationView({ app }: { app: BankApplicationDetail }) {
               ))}
             </Stack>
           </Card>
-          <Card>
-            <CardTitle>Аудит</CardTitle>
+          <Card title='Аудит'>
             {app.audit.length === 0 ? (
               <Text secondary>Действий пока не было</Text>
             ) : (
@@ -302,7 +307,7 @@ function BankApplicationView({ app }: { app: BankApplicationDetail }) {
               </Stack>
             )}
           </Card>
-        </div>
+        </Grid>
       </Stack>
     </div>
   );

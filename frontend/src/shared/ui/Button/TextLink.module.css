@@ -1,0 +1,65 @@
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--a-text);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.link:disabled {
+  opacity: 0.5;
+  cursor: default;
+  text-decoration: none;
+}
+
+.default {
+  color: var(--a-text);
+}
+
+.red {
+  color: var(--a-red);
+}
+
+.blue {
+  color: var(--a-blue);
+}
+
+.muted {
+  color: var(--a-text-2);
+  font-weight: 400;
+}
+
+.underline {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.inline {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--a-blue);
+  font: inherit;
+  cursor: pointer;
+}
+
+.inline:hover {
+  text-decoration: underline;
+}

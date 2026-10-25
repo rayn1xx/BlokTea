@@ -11,6 +11,7 @@ import { BankDashboardScreen } from '@/features/bank/screens/BankDashboardScreen
 import { BankDecisionScreen } from '@/features/bank/screens/BankDecisionScreen';
 import { BankQueueScreen } from '@/features/bank/screens/BankQueueScreen';
 import { BankSettingsScreen } from '@/features/bank/screens/BankSettingsScreen';
+import { CompanyProfileScreen } from '@/features/company/screens/CompanyProfileScreen';
 import { ReadinessScreen } from '@/features/company/screens/ReadinessScreen';
 import { ApplicationDocumentsScreen } from '@/features/documents/screens/ApplicationDocumentsScreen';
 import { DocumentsScreen } from '@/features/documents/screens/DocumentsScreen';
@@ -61,7 +62,8 @@ export const router = createBrowserRouter([
             element: <ClientShell />,
             children: [
               { path: '/home', element: <HomeScreen /> },
-              { path: '/onboarding/company', element: <HomeScreen /> },
+              { path: '/onboarding/company', element: <Navigate to='/company/profile' replace /> },
+              { path: '/company/profile', element: <CompanyProfileScreen /> },
               { path: '/notifications', element: <HomeScreen /> },
               { path: '/feed', element: <FeedScreen /> },
               { path: '/team', element: <TeamScreen /> },

@@ -1,5 +1,3 @@
-"""Рассмотрение заявки: автопроверки, скоринг, авторешение (3.5), решения и запросы банка."""
-
 import logging
 import uuid
 from datetime import timedelta
@@ -88,7 +86,6 @@ def check_view(c: CheckResult) -> dict:
 async def run_checks(
     session: AsyncSession, app: Application, data: CompanyData
 ) -> tuple[dict, list[dict], dict | None]:
-    """Автопроверки и скоринг по запрошенным условиям; результаты заменяют прежние."""
     t = await thresholds(session)
     facts, avail = await data.facts()
     load = application_load(app, facts, t)
@@ -145,8 +142,8 @@ def decision_payload(
     *,
     offer: dict | None = None,
     reason_codes: list[str] | None = None,
+    reason_comment: str | None = None,
 ) -> dict:
-    """Decision из К.10. offer: {product_code, amount, term_months, rate_percent}."""
     offered = None
     if decision_type != "rejected":
         offer = offer or {
@@ -185,6 +182,8 @@ def decision_payload(
         factors.append({"code": f"stop_{i}", "title": stop, "impact": "negative", "text": stop})
     for code in reason_codes or []:
         title = REJECTION_REASON_TITLES.get(code, code)
+        if code == "other" and (reason_comment or "").strip():
+            title = reason_comment.strip()
         factors.append({"code": f"reason_{code}", "title": title, "impact": "negative", "text": title})
 
     negative = [f for f in factors if f["impact"] == "negative"]
@@ -298,7 +297,6 @@ async def create_info_request(
     )
     session.add(request)
     uploaders = people.active_with("upload_documents")
-    # ответственный по умолчанию: автор заявки
     assignee = app.created_by if app.created_by in uploaders else (uploaders[0] if uploaders else None)
     transition(
         session,
@@ -324,7 +322,6 @@ async def create_info_request(
 
 
 async def auto_review(session: AsyncSession, external: ExternalSystems, app_id: uuid.UUID) -> None:
-    """Поток после submit (3.5): автопроверки, недостающие документы, стоп-факторы, авторешение или очередь."""
     app = await session.get(Application, app_id, with_for_update=True)
     if app is None or app.status != ApplicationStatus.SUBMITTED:
         return
@@ -353,7 +350,6 @@ async def auto_review(session: AsyncSession, external: ExternalSystems, app_id: 
 
     statuses = {c["status"] for c in checks}
     if "error" in statuses:
-        # мок не ответил: решение за аналитиком
         return
 
     req = await requirements(session, app, data)
@@ -385,7 +381,6 @@ async def auto_review(session: AsyncSession, external: ExternalSystems, app_id: 
 async def auto_review_job(
     session_factory: async_sessionmaker[AsyncSession], external_factory, app_id: uuid.UUID
 ) -> None:
-    """Фоновая задача после ответа на submit: своя сессия и свой клиент к мокам."""
     try:
         async with session_factory() as session, external_factory() as external:
             await auto_review(session, external, app_id)

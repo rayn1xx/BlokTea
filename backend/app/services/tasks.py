@@ -1,5 +1,3 @@
-"""Задачи «Требуется ваше действие» (К.6) и передача задачи сотруднику (3.8)."""
-
 import uuid
 
 from sqlalchemy import select
@@ -9,7 +7,6 @@ from app.core.errors import not_found, validation
 from app.models import Application, Task
 from app.services.common import ClientContext, People, iso
 
-# какое право нужно исполнителю задачи
 TASK_PERMISSION = {
     "info_request": "upload_documents",
     "send_application": "submit_applications",
@@ -17,8 +14,9 @@ TASK_PERMISSION = {
     "approve_member": "manage_team",
     "sign": "sign",
     "consent": "sign",
+    "upload_document": "upload_documents",
 }
-REASSIGNABLE = {"info_request", "send_application"}
+REASSIGNABLE = {"info_request", "send_application", "upload_document"}
 
 WAITING_PREFIX = {
     "accept_offer": "Решение принимает",
@@ -105,3 +103,53 @@ class TaskService:
             if app:
                 app_map[app.id] = app
         return task_view(task, ctx, people, app_map)
+
+    async def request_document(
+        self,
+        ctx: ClientContext,
+        *,
+        member_id: str,
+        document_type: str,
+        application_id: str | None,
+        comment: str | None,
+    ) -> dict:
+        from app.domain.catalog import DOCUMENT_TYPES_BY_CODE, document_title
+        from app.services.events import add_task, notify
+
+        if document_type not in DOCUMENT_TYPES_BY_CODE:
+            raise validation("Неизвестный тип документа", {"document_type": "Выберите тип из списка"})
+        people = await People.load(self.session, ctx.company)
+        target = next((m for m in people.members.values() if str(m.id) == str(member_id)), None)
+        if target is None or target.status.value != "active" or not target.user_id:
+            raise validation("Сотрудник не найден", {"member_id": "Выберите активного сотрудника"})
+        if "upload_documents" not in (target.permissions or []):
+            raise validation("У сотрудника нет права загружать документы", {"member_id": "Нет права загрузки"})
+        app = None
+        if application_id:
+            app = await self.session.get(Application, uuid.UUID(application_id))
+            if app is None or app.company_id != ctx.company.id:
+                raise not_found("Заявка не найдена")
+        title = f"Загрузить: {document_title(document_type)}"
+        if comment and comment.strip():
+            title = f"{title}. {comment.strip()}"
+        route = f"/documents?type={document_type}" + (f"&application_id={app.id}" if app else "")
+        task = add_task(
+            self.session,
+            company_id=ctx.company.id,
+            type_="upload_document",
+            title=title,
+            cta={"label": "Загрузить", "route": route},
+            assignee=target.user_id,
+            application_id=app.id if app else None,
+            ref_id=document_type,
+        )
+        notify(
+            self.session,
+            [target.user_id],
+            title=f"{people.title(ctx.user.id)} просит загрузить документ",
+            text=title,
+            application_id=app.id if app else None,
+            route=route,
+        )
+        await self.session.flush()
+        return task_view(task, ctx, people, {app.id: app} if app else {})

@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { InformationCircleLineMIcon } from '@alfalab/icons-glyph/InformationCircleLineMIcon';
 
-import { useReadiness } from '@/features/company/hooks';
+import { StressTest } from '@/features/company/components/StressTest';
+import { useFinance, useReadiness } from '@/features/company/hooks';
 import type { ReadinessItem } from '@/features/company/types';
 import { UploadDialog } from '@/features/documents/components/UploadDialog';
 import { formatShortDateTime } from '@/shared/lib/format';
-import { AiBadge, PageHead, QueryGate, TextLink } from '@/shared/ui';
+import { AiBadge, PageHead, QueryGate, Stack, TextLink } from '@/shared/ui';
 
-import r from '../readiness.module.css';
+import r from './ReadinessScreen.module.css';
 
 const STATE = {
   ok: { text: 'В порядке', cls: r.ok },
@@ -19,10 +20,16 @@ const STATE = {
 
 export function ReadinessScreen() {
   const readiness = useReadiness();
+  const finance = useFinance();
   return (
     <div className={r.page}>
       <PageHead back={{ label: 'Кредитование', to: '/home' }} title='Кредитная готовность компании' subtitle='На что обратить внимание перед новым обращением' />
-      <QueryGate query={readiness}>{(data) => <Grid items={data.items} summary={data.summary_text} source={data.text_source} disclaimer={data.disclaimer} at={data.calculated_at} />}</QueryGate>
+      <Stack gap={24}>
+        <QueryGate query={readiness}>{(data) => <Grid items={data.items} summary={data.summary_text} source={data.text_source} disclaimer={data.disclaimer} at={data.calculated_at} />}</QueryGate>
+        <QueryGate query={finance} loading={null}>
+          {(f) => <StressTest finance={f} />}
+        </QueryGate>
+      </Stack>
     </div>
   );
 }

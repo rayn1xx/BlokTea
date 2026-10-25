@@ -1,5 +1,3 @@
-"""Подбор, документы, задачи, уведомления, лента, аудит и настройки."""
-
 import uuid
 from datetime import date, datetime
 
@@ -17,11 +15,10 @@ class MatchingSession(Base):
     company_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("companies.id", ondelete="CASCADE"), index=True)
     created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     step: Mapped[int] = mapped_column(Integer, default=1)
-    status: Mapped[str] = mapped_column(String(16), default="draft")  # draft | completed
+    status: Mapped[str] = mapped_column(String(16), default="draft")
     need: Mapped[dict] = mapped_column(JSONB)
     extra: Mapped[dict] = mapped_column(JSONB)
     finance_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
-    # последняя рекомендация: из неё создаётся заявка
     last_recommendation: Mapped[dict | None] = mapped_column(JSONB)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
@@ -38,9 +35,8 @@ class Document(Base):
     info_request_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("info_requests.id", ondelete="SET NULL"))
     document_type: Mapped[str] = mapped_column(String(64))
     title: Mapped[str] = mapped_column(String(500))
-    scope: Mapped[str] = mapped_column(String(16))  # company | application
-    origin: Mapped[str] = mapped_column(String(16), default="upload")  # upload | alfa_lk
-    # путь строится из id документа и версии, имя файла пользователя в путь не попадает
+    scope: Mapped[str] = mapped_column(String(16))
+    origin: Mapped[str] = mapped_column(String(16), default="upload")
     file_path: Mapped[str | None] = mapped_column(String(500))
     file_name: Mapped[str] = mapped_column(String(255))
     content_type: Mapped[str] = mapped_column(String(100), default="application/octet-stream")
@@ -55,8 +51,6 @@ class Document(Base):
 
 
 class Task(Base):
-    """Задача «Требуется ваше действие»: создаётся событием, закрывается выполнением."""
-
     __tablename__ = "tasks"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -64,9 +58,8 @@ class Task(Base):
     type: Mapped[str] = mapped_column(String(32))
     application_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("applications.id", ondelete="CASCADE"))
     assignee_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
-    # к чему относится: id запроса банка, сотрудника и т. п.
     ref_id: Mapped[str | None] = mapped_column(String(64))
-    status: Mapped[str] = mapped_column(String(16), default="open", index=True)  # open | done
+    status: Mapped[str] = mapped_column(String(16), default="open", index=True)
     title: Mapped[str] = mapped_column(Text)
     cta: Mapped[dict] = mapped_column(JSONB)
     due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -88,8 +81,6 @@ class Notification(Base):
 
 
 class FeedItem(Base):
-    """Материал ленты; кому показывать, решают правила по targeting (раздел 3.11)."""
-
     __tablename__ = "feed_items"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -99,7 +90,6 @@ class FeedItem(Base):
     published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     tags: Mapped[list[str]] = mapped_column(ARRAY(String(64)), default=list)
     cta: Mapped[dict | None] = mapped_column(JSONB)
-    # {okved_prefixes, msp_categories, legal_forms, product_code, readiness_warning, seasonality}
     targeting: Mapped[dict] = mapped_column(JSONB, default=dict)
 
 
@@ -117,8 +107,6 @@ class AuditLog(Base):
 
 
 class Setting(Base):
-    """Настройки банка, например пороги скоринга (B4)."""
-
     __tablename__ = "settings"
 
     key: Mapped[str] = mapped_column(String(64), primary_key=True)

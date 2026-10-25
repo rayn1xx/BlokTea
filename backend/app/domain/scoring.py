@@ -1,5 +1,3 @@
-"""Скоринг, стоп-факторы и автопроверки (раздел 3.5 ТЗ). Решение не зависит от ответа модели."""
-
 from decimal import ROUND_HALF_UP, Decimal
 
 from app.domain.catalog import INDUSTRY_POINTS, INDUSTRY_POINTS_DEFAULT, rub
@@ -58,7 +56,6 @@ def industry_points(okved: str) -> int:
 
 
 def turnover_points(facts: CompanyFacts) -> int:
-    """20 баллов за ровные поступления: минус 8 за месяц без поступлений, минус 3,5 за месяц спада (< 80% среднего)."""
     if len(facts.months) < 6:
         return 0
     points = Decimal(20) - 8 * empty_months(facts.months) - Decimal("3.5") * len(low_months(facts.months))
@@ -101,7 +98,6 @@ def outcome_for(total: int, stops: list[str], t: Thresholds) -> str:
 
 
 def score(facts: CompanyFacts, load: float, t: Thresholds) -> dict:
-    """ScoringResult из К.14 для нагрузки с новым платежом."""
     age = facts.business_age_months
     factors = [
         {
@@ -193,7 +189,6 @@ def checks(
     fns_ok: bool,
     checked_at: str,
 ) -> list[dict]:
-    """Автопроверки по мокам: CheckResult из К.14. Ошибка мока даёт статус error."""
 
     def result(source: str, status: str, summary: str, details: dict | None = None) -> dict:
         return {

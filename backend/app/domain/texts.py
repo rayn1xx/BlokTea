@@ -1,17 +1,9 @@
-"""Шаблоны-заглушки ИИ-задач (раздел 8.6 ТЗ). Без LLM или при её сбое все тексты отсюда, text_source='template'.
-
-Числа в шаблоны подставляет код, поэтому они всегда совпадают с расчётом.
-"""
-
 from app.domain.catalog import MONTH_NAMES, PURPOSE_TITLES
 from app.domain.finance import age_text, format_percent, format_rub
 
 TEMPLATE = "template"
 
 DISCLAIMER = "Это ориентир, а не решение банка"
-
-
-# И4. Причины рекомендации и предупреждения
 
 
 def reason_text(code: str, value: str) -> str:
@@ -69,9 +61,6 @@ def submit_requirements_text(legal_form: str) -> str:
 
 FIT_LABELS = {"high": "Высокий шанс", "medium": "Средний шанс", "low": "Низкий шанс"}
 FIT_LABEL_BORDER = "На границе"
-
-
-# И5. Объяснение решения
 
 
 def decision_explanation(
@@ -132,8 +121,6 @@ def factor_text(code: str, impact: str, fallback: str) -> str:
     return FACTOR_TEXTS.get((code, impact), fallback)
 
 
-# И6. Готовность
-
 HOW_TO_IMPROVE = {
     "business_age": "Банки охотнее кредитуют бизнес старше года. Можно начать с небольшой суммы",
     "debt_load": "Уменьшите сумму или увеличьте срок, чтобы снизить платёж",
@@ -153,8 +140,6 @@ def readiness_summary(level: str) -> str:
     }[level]
 
 
-# И3. Замечания по документам
-
 ISSUE_TEXTS = {
     "inn_match": "ИНН в документе не совпадает с ИНН компании",
     "not_expired": "Документ старше {days} дней, загрузите свежий",
@@ -164,9 +149,6 @@ ISSUE_TEXTS = {
 }
 
 MANUAL_CHECK_TEXT = "Автоматическая проверка недоступна, документ проверит сотрудник банка"
-
-
-# И7. Резюме для аналитика
 
 
 def analyst_summary(

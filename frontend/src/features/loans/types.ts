@@ -13,5 +13,13 @@ export type Loan = {
   overpayment_total: Money;
   issued_to_account: string;
   schedule: PaymentScheduleRow[];
+  payments: LoanPayment[];
   source: 'alfa_lk' | 'system';
+};
+
+export type LoanPayment = {
+  date: string;
+  principal: Money;
+  interest: Money;
+  early: Money;
 };

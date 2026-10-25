@@ -1,0 +1,69 @@
+.accordion {
+  border: 1px solid var(--a-border);
+  border-radius: var(--a-radius);
+  background: var(--a-bg);
+}
+
+.head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  color: var(--a-text-2);
+}
+
+.icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  display: block;
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.subtitle {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--a-text-2);
+}
+
+.chevron {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  color: var(--a-text-2);
+  transition: transform 0.2s;
+}
+
+.chevronRight {
+  transform: rotate(-90deg);
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.body {
+  padding: 0 20px 18px;
+}

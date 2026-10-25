@@ -10,7 +10,7 @@ import { keys } from '@/shared/api/queryKeys';
 import { ROLE_LABELS } from '@/shared/i18n/ru';
 import { formatShortDateTime } from '@/shared/lib/format';
 import type { Permission, UserRole } from '@/shared/types/common';
-import { Btn, CheckField, Dialog, Field, InfoLine, ModalFooter, Options, SelectField, Stack, TextField } from '@/shared/ui';
+import { Btn, CheckField, Dialog, Field, InfoLine, ModalFooter, Options, SelectField, Stack, Text, TextField } from '@/shared/ui';
 
 import { ExtraRights, SCOPE_OPTIONS } from './AccessDialog';
 import type { Scope } from './AccessDialog';
@@ -125,7 +125,7 @@ export function AddMemberDialog({ companyName, onClose }: { companyName: string;
           <LockClosedMIcon className={t.actionIcon} /> Право подписи подключается отдельно
         </div>
         <InfoLine>После добавления потребуется подтверждение сотрудника.</InfoLine>
-        {errors.form && <div style={{ color: 'var(--a-red)' }}>{errors.form}</div>}
+        {errors.form && <Text color='negative' tag='div'>{errors.form}</Text>}
       </Stack>
     </Dialog>
   );

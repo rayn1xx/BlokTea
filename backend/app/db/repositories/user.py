@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import User
 
 
-# репозитории только читают и пишут в сессию: коммит делает сервис
 class UserRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session

@@ -20,7 +20,8 @@ import { READINESS_STATUS } from '@/shared/i18n/ru';
 import { formatMoney, formatMonths, formatPercent } from '@/shared/lib/format';
 import { AiBadge, Btn, Dialog, ErrorState, SkeletonLines, Stack, TextLink, ToneLabel } from '@/shared/ui';
 
-import m from '../matching.module.css';
+import m from './StepRecommendation.module.css';
+import st from './step.module.css';
 
 type View = 'carousel' | 'why' | 'other';
 
@@ -77,18 +78,18 @@ function Recommendations({ session, data, onClose }: { session: MatchingSession;
         <Stack gap={16}>
           <div className={m.pinkBox}>
             <b>Мы изучили ваши ответы</b>
-            <div className={m.small} style={{ color: 'var(--a-text)' }}>
+            <div className={st.small} style={{ color: 'var(--a-text)' }}>
               И подобрали вариант под заявленную потребность бизнеса.
             </div>
           </div>
-          <div className={m.sectionTitle}>Что повлияло на рекомендацию</div>
+          <div className={st.sectionTitle}>Что повлияло на рекомендацию</div>
           <ol className={m.reasons}>
             {reasons.map((r, i) => (
               <li key={r.title}>
                 <span className={m.reasonNum}>{String(i + 1).padStart(2, '0')}</span>
                 <span>
                   <b>{r.title}</b>
-                  {r.text && <span className={m.small} style={{ display: 'block' }}>{r.text}</span>}
+                  {r.text && <span className={st.small} style={{ display: 'block' }}>{r.text}</span>}
                 </span>
               </li>
             ))}
@@ -110,7 +111,7 @@ function Recommendations({ session, data, onClose }: { session: MatchingSession;
     return (
       <Dialog open onClose={onClose} title='Подберём другой путь' subtitle='Не нужно заполнять анкету заново'>
         <Stack gap={14}>
-          <div className={m.sectionTitle}>Как хотите продолжить?</div>
+          <div className={st.sectionTitle}>Как хотите продолжить?</div>
           <button type='button' className={`${m.pathCard} ${m.pathPink}`} onClick={() => navigate(`/match/${session.id}/step/1`)}>
             <b>
               <ArrowsCwMIcon className={m.pathIcon} /> Обновить рекомендации
@@ -123,7 +124,7 @@ function Recommendations({ session, data, onClose }: { session: MatchingSession;
             </b>
             <span>Откройте каталог продуктов и сравните условия без алгоритма подбора.</span>
           </button>
-          <div className={m.small}>Ваши ранее введённые данные сохранятся.</div>
+          <div className={st.small}>Ваши ранее введённые данные сохранятся.</div>
           <button type='button' className={m.softButton} onClick={() => setView('carousel')}>
             Вернуться к рекомендациям
           </button>
@@ -150,9 +151,9 @@ function Recommendations({ session, data, onClose }: { session: MatchingSession;
           {index > 0 && <div className={m.recLabel}>Рекомендуемый вариант</div>}
           <div className={m.recTitle}>
             {rec.product.name}
-            {rec.product.is_fictional && <span className={m.small}> · вымышленный продукт</span>}
+            {rec.product.is_fictional && <span className={st.small}> · вымышленный продукт</span>}
           </div>
-          {description && <div className={m.small}>{description}</div>}
+          {description && <div className={st.small}>{description}</div>}
           <div className={m.recMain}>
             <span className={m.recAmount}>{formatMoney(rec.amount)}</span>
             <span className={m.recTerm}>{formatMonths(rec.term_months)}</span>
@@ -160,7 +161,7 @@ function Recommendations({ session, data, onClose }: { session: MatchingSession;
           <div>
             {formatPercent(rec.rate_percent, 0)} годовых · ≈ {formatMoney(rec.monthly_payment)}/мес.
           </div>
-          <div className={m.small} style={{ marginTop: 10 }}>
+          <div className={st.small} style={{ marginTop: 10 }}>
             Демо-условия. Не является одобрением.
           </div>
         </div>
@@ -199,7 +200,7 @@ function Recommendations({ session, data, onClose }: { session: MatchingSession;
           <ChevronDownMIcon className={m.whyChevron} />
         </button>
 
-        {error && <div className={m.error}>{error}</div>}
+        {error && <div className={st.error}>{error}</div>}
 
         <Btn size='l' block loading={create.isPending && !create.variables?.keep} onClick={() => create.mutate({ rank: rec.rank })}>
           Продолжить с этим вариантом
@@ -250,7 +251,7 @@ function Expandable({
         <span className={tone === 'yellow' ? m.expIconYellow : m.expIcon}>{icon}</span>
         <span style={{ flex: 1 }}>
           <b>{title}</b>
-          {subtitle && <span className={m.small} style={{ display: 'block' }}>{subtitle}</span>}
+          {subtitle && <span className={st.small} style={{ display: 'block' }}>{subtitle}</span>}
           {tone === 'yellow' && !open && <span className={m.expMore}>Подробнее</span>}
         </span>
         <ChevronDownMIcon className={m.whyChevron} style={{ transform: open ? 'rotate(180deg)' : undefined }} />

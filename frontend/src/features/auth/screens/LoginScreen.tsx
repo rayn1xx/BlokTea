@@ -1,6 +1,5 @@
 import { type FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@alfalab/core-components/button';
 import { Input } from '@alfalab/core-components/input';
 import { PasswordInput } from '@alfalab/core-components/password-input';
 
@@ -13,9 +12,9 @@ import { errorText, queryClient } from '@/shared/api/query';
 import { keys } from '@/shared/api/queryKeys';
 import { setToken } from '@/shared/api/token';
 import { ERRORS, TEXTS } from '@/shared/i18n/ru';
-import { FieldTag, Text } from '@/shared/ui';
+import { Btn, FieldTag, Text } from '@/shared/ui';
 
-import styles from '../auth.module.css';
+import s from '../auth.module.css';
 
 export function LoginScreen() {
   const navigate = useNavigate();
@@ -51,7 +50,7 @@ export function LoginScreen() {
 
   return (
     <AuthLayout title='Альфа-Бизнес' subtitle='Вход в кредитный кабинет'>
-      <form className={styles.form} onSubmit={handleSubmit} noValidate>
+      <form className={s.form} onSubmit={handleSubmit} noValidate>
         <Input
           label='Почта'
           type='email'
@@ -83,11 +82,11 @@ export function LoginScreen() {
           error={(touched.password && passwordError) || serverError || undefined}
           block
         />
-        <Button type='submit' view='primary' size={64} block loading={loading} className={styles.submit}>
+        <Btn type='submit' size='xl' block loading={loading} className={s.submit}>
           Войти
-        </Button>
+        </Btn>
       </form>
-      <Text small secondary tag='p' className={styles.hint}>
+      <Text small secondary tag='p' className={s.hint}>
         {TEXTS.loginHint}
       </Text>
     </AuthLayout>

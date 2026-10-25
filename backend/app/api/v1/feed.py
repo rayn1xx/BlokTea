@@ -1,5 +1,3 @@
-"""Лента и уведомления (К.13)."""
-
 import uuid
 from typing import Annotated
 

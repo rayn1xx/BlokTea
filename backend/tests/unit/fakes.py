@@ -1,5 +1,3 @@
-"""In-memory замены репозиториев и сессии: AuthService тестируется без БД и Redis."""
-
 import uuid
 from datetime import timedelta
 
@@ -32,7 +30,6 @@ class FakeUserRepository:
 
 class FakeRefreshSessionRepository:
     def __init__(self) -> None:
-        # token_hash -> {"user_id", "revoked", "ttl"}
         self.sessions: dict[str, dict] = {}
         self.revoked_users: list[uuid.UUID] = []
 

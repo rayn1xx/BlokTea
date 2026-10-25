@@ -1,0 +1,57 @@
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--a-bg-soft);
+}
+
+.icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  color: var(--a-text-3);
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+}
+
+.action {
+  margin-top: 10px;
+}
+
+.info {
+  background: var(--a-blue-soft);
+}
+
+.info .icon {
+  color: var(--a-blue);
+}
+
+.attention {
+  background: var(--a-yellow-soft);
+}
+
+.attention .icon {
+  color: var(--a-yellow);
+}
+
+.positive {
+  background: var(--a-green-soft);
+}
+
+.positive .icon {
+  color: var(--a-green);
+}
+
+.negative {
+  background: var(--a-red-soft);
+}
+
+.negative .icon {
+  color: var(--a-red);
+}

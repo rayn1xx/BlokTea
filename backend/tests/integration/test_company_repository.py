@@ -17,7 +17,6 @@ def repo(db_session: AsyncSession) -> CompanyRepository:
 
 
 async def reload(session_factory: async_sessionmaker[AsyncSession], company_id: uuid.UUID) -> Company | None:
-    # новая сессия: иначе вернётся объект из identity map, а не из БД
     async with session_factory() as other:
         return await CompanyRepository(other).get_by_id(company_id)
 
@@ -44,7 +43,6 @@ async def test_roundtrip_keeps_all_fields(
 async def test_defaults(
     repo: CompanyRepository, db_session: AsyncSession, session_factory: async_sessionmaker[AsyncSession]
 ) -> None:
-    # только обязательные поля: остальное должно заполниться значениями по умолчанию
     template = make_company()
     company = Company(
         legal_form=template.legal_form,
@@ -123,7 +121,6 @@ async def test_invalid_requisites_rejected(repo: CompanyRepository, overrides: d
 
 
 async def test_kpp_with_latin_letters_allowed(repo: CompanyRepository) -> None:
-    # с 2019 года в 5–6 позициях КПП допускаются заглавные латинские буквы
     await repo.add(make_company(kpp="7701AB001"))
 
 

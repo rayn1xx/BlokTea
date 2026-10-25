@@ -22,9 +22,9 @@ import { keys } from '@/shared/api/queryKeys';
 import { ERRORS, PURPOSE_LABELS } from '@/shared/i18n/ru';
 import { formatMoney, formatMonths, formatNumberInput, formatPercent, parseNumberInput, rubToMoney } from '@/shared/lib/format';
 import { useAutosave } from '@/shared/lib/useAutosave';
-import { Btn, CodeConfirm, Dialog, Field, IconCircle, Metrics, ModalFooter, PageHead, Pill, QueryGate, SelectField, SkeletonLines, Stack, TextField, TextLink, kit } from '@/shared/ui';
+import { Btn, Card, CodeConfirm, Dialog, Field, Grow, IconCircle, Metrics, ModalFooter, PageHead, Pill, QueryGate, SelectField, SkeletonLines, Stack, TextField, TextLink } from '@/shared/ui';
 
-import e from '../edit.module.css';
+import s from './ApplicationEditScreen.module.css';
 
 const CONSENTS: RequirementCode[] = ['consent_bki', 'consent_pd'];
 
@@ -106,34 +106,34 @@ function EditView({ app }: { app: ApplicationDetail }) {
   const hint = !requirements.data ? '' : canSubmit ? 'Всё готово к отправке' : missingConsents.length ? 'Осталось подтвердить заявку' : 'Осталось добавить обязательные документы';
 
   return (
-    <div className={e.page}>
+    <div className={s.page}>
       <PageHead
         back={{ label: 'К выбору кредита', to: '/products' }}
         title='Проверьте заявку'
         subtitle='Мы перенесли данные из подбора. Повторно заполнять их не нужно.'
         right={
-          <span className={e.saved}>
+          <span className={s.saved}>
             <CheckmarkCircleMIcon /> {state.status === 'saving' ? 'Сохраняем…' : state.status === 'error' ? 'Не сохранилось' : 'Черновик сохранён'}
           </span>
         }
       />
 
-      {conflict && <div className={e.warn}>{ERRORS.versionConflict}</div>}
-      {app.client_warning_accepted && <div className={e.warn}>Вы оставили сумму выше рекомендуемой. Банк увидит это и может предложить другие условия.</div>}
+      {conflict && <div className={s.warn}>{ERRORS.versionConflict}</div>}
+      {app.client_warning_accepted && <div className={s.warn}>Вы оставили сумму выше рекомендуемой. Банк увидит это и может предложить другие условия.</div>}
 
       <Stack gap={14}>
-        <section className={kit.box}>
-          <div className={e.productHead}>
+        <Card>
+          <div className={s.productHead}>
             <IconCircle icon={Icon} />
-            <div style={{ flex: 1 }}>
-              <div className={e.productName}>{app.product.name}</div>
-              <div className={e.muted}>Предварительные демо-условия · {app.collateral && app.collateral.type !== 'none' ? 'С залогом' : 'Без залога'}</div>
-            </div>
+            <Grow>
+              <div className={s.productName}>{app.product.name}</div>
+              <div className={s.muted}>Предварительные демо-условия · {app.collateral && app.collateral.type !== 'none' ? 'С залогом' : 'Без залога'}</div>
+            </Grow>
             <Btn variant='outline' size='l' onClick={() => setDialog('terms')}>
               Изменить
             </Btn>
           </div>
-          <div className={e.metrics}>
+          <div className={s.metrics}>
             <Metrics
               items={[
                 { value: formatMoney(amount), label: 'Сумма кредита' },
@@ -143,14 +143,13 @@ function EditView({ app }: { app: ApplicationDetail }) {
               ]}
             />
           </div>
-        </section>
+        </Card>
 
         <CheckRow title='Компания' text={`${home.company?.short_name ?? ''} · данные из реестра`} onClick={() => setDialog('company')} />
         <CheckRow title='Финансы' text='Данные из Альфа-Бизнеса и подбора' onClick={() => setDialog('finance')} />
 
-        <section className={kit.box}>
-          <h2 className={kit.boxTitle}>Что осталось для отправки</h2>
-          <div className={e.muted} style={{ marginTop: 4 }}>
+        <Card title='Что осталось для отправки'>
+          <div className={s.muted} style={{ marginTop: 4 }}>
             Подтверждение в прототипе: кодом внутри кабинета.
           </div>
           {!requirements.data ? (
@@ -158,12 +157,12 @@ function EditView({ app }: { app: ApplicationDetail }) {
           ) : missingConsents.length || otherRequired.length ? (
             <Stack gap={10} style={{ marginTop: 14 }}>
               {missingConsents.length > 0 && (
-                <div className={e.todo}>
+                <div className={s.todo}>
                   <IconCircle icon={DocumentLinesMIcon} />
-                  <div style={{ flex: 1 }}>
-                    <div className={e.todoTitle}>Подтвердите заявку и необходимые согласия</div>
-                    <div className={e.muted}>{missingConsents.map((r) => r.title).join(' · ')}</div>
-                  </div>
+                  <Grow>
+                    <div className={s.todoTitle}>Подтвердите заявку и необходимые согласия</div>
+                    <div className={s.muted}>{missingConsents.map((r) => r.title).join(' · ')}</div>
+                  </Grow>
                   <Btn variant='outlineRed' size='l' disabled={!actions.includes('consent.sign')} onClick={() => setConfirmQueue(missingConsents)}>
                     Подтвердить
                   </Btn>
@@ -173,12 +172,12 @@ function EditView({ app }: { app: ApplicationDetail }) {
                 </div>
               )}
               {otherRequired.map((r) => (
-                <div key={r.code} className={e.todo}>
+                <div key={r.code} className={s.todo}>
                   <IconCircle icon={DocumentMIcon} />
-                  <div style={{ flex: 1 }}>
-                    <div className={e.todoTitle}>{r.title}</div>
-                    <div className={e.muted}>{r.note}</div>
-                  </div>
+                  <Grow>
+                    <div className={s.todoTitle}>{r.title}</div>
+                    <div className={s.muted}>{r.note}</div>
+                  </Grow>
                   <Btn variant='outlineRed' size='l' disabled={!actions.includes('document.upload')} onClick={() => setUpload(r)}>
                     Добавить
                   </Btn>
@@ -186,63 +185,62 @@ function EditView({ app }: { app: ApplicationDetail }) {
               ))}
             </Stack>
           ) : (
-            <div className={e.done}>
+            <div className={s.done}>
               <CheckmarkCircleMIcon /> Заявка и согласия подтверждены
             </div>
           )}
-        </section>
+        </Card>
 
-        <section className={kit.box}>
-          <h2 className={kit.boxTitle}>Документы</h2>
-          <div className={e.docRow}>
-            <span className={requiredDocsDone ? e.ok : e.pending}>{requiredDocsDone ? <CheckmarkCircleMIcon /> : <DocumentMIcon />}</span>
-            <div style={{ flex: 1 }}>
-              <div className={e.todoTitle}>{requiredDocsDone ? 'Обязательные документы добавлены' : 'Не хватает обязательных документов'}</div>
-              <div className={e.muted}>Из раздела «Документы»</div>
-            </div>
+        <Card title='Документы'>
+          <div className={s.docRow}>
+            <span className={requiredDocsDone ? s.ok : s.pending}>{requiredDocsDone ? <CheckmarkCircleMIcon /> : <DocumentMIcon />}</span>
+            <Grow>
+              <div className={s.todoTitle}>{requiredDocsDone ? 'Обязательные документы добавлены' : 'Не хватает обязательных документов'}</div>
+              <div className={s.muted}>Из раздела «Документы»</div>
+            </Grow>
             <TextLink onClick={() => navigate(`/applications/${app.id}/documents`)}>
-              Посмотреть <ChevronRightMIcon className={e.chev} />
+              Посмотреть <ChevronRightMIcon className={s.chev} />
             </TextLink>
           </div>
           {docs
             .filter((r) => r.necessity === 'situational' && r.status === 'missing')
             .map((r) => (
-              <div key={r.code} className={e.docRow}>
-                <span className={e.pending}>
+              <div key={r.code} className={s.docRow}>
+                <span className={s.pending}>
                   <DocumentMIcon />
                 </span>
-                <div style={{ flex: 1 }}>
-                  <div className={e.todoTitle}>
+                <Grow>
+                  <div className={s.todoTitle}>
                     {r.title} <Pill small>Необязательно сейчас</Pill>
                   </div>
-                  <div className={e.muted}>{r.note}</div>
-                </div>
+                  <div className={s.muted}>{r.note}</div>
+                </Grow>
                 <Btn variant='outline' size='l' disabled={!actions.includes('document.upload')} onClick={() => setUpload(r)}>
                   Добавить
                 </Btn>
               </div>
             ))}
-        </section>
+        </Card>
 
-        {error && <div className={e.error}>{error}</div>}
-        {handedOff && <div className={e.done}>Заявка передана: {handedOff}. Сотрудник увидит задачу на главной</div>}
+        {error && <div className={s.error}>{error}</div>}
+        {handedOff && <div className={s.done}>Заявка передана: {handedOff}. Сотрудник увидит задачу на главной</div>}
       </Stack>
 
-      <div className={e.bottom} data-sticky-bar>
-        <span className={e.hint}>
+      <div className={s.bottom} data-sticky-bar>
+        <span className={s.hint}>
           <InformationCircleLineMIcon /> {hint}
         </span>
-        <div className={e.bottomActions}>
+        <div className={s.bottomActions}>
           {actions.includes('application.submit') ? (
-            <Btn size='l' disabled={!canSubmit} loading={submit.isPending} onClick={() => submit.mutate()} className={e.send}>
+            <Btn size='l' disabled={!canSubmit} loading={submit.isPending} onClick={() => submit.mutate()} className={s.send}>
               Отправить в банк
             </Btn>
           ) : actions.includes('application.handoff') ? (
-            <Btn size='l' onClick={() => setDialog('handoff')} className={e.send}>
+            <Btn size='l' onClick={() => setDialog('handoff')} className={s.send}>
               Передать на отправку
             </Btn>
           ) : (
-            <span className={e.muted}>Отправить заявку может сотрудник с правом подачи</span>
+            <span className={s.muted}>Отправить заявку может сотрудник с правом подачи</span>
           )}
           <TextLink onClick={() => saveExit.mutate()}>Сохранить и выйти</TextLink>
         </div>
@@ -318,14 +316,14 @@ function EditView({ app }: { app: ApplicationDetail }) {
 
 function CheckRow({ title, text, onClick }: { title: string; text: string; onClick: () => void }) {
   return (
-    <button type='button' className={e.checkRow} onClick={onClick}>
-      <CheckmarkCircleMIcon className={e.checkIcon} />
-      <b className={e.checkTitle}>{title}</b>
-      <span className={e.muted} style={{ flex: 1 }}>
+    <button type='button' className={s.checkRow} onClick={onClick}>
+      <CheckmarkCircleMIcon className={s.checkIcon} />
+      <b className={s.checkTitle}>{title}</b>
+      <span className={s.muted} style={{ flex: 1 }}>
         {text}
       </span>
-      <span className={e.checkLink}>
-        Проверить <ChevronRightMIcon className={e.chev} />
+      <span className={s.checkLink}>
+        Проверить <ChevronRightMIcon className={s.chev} />
       </span>
     </button>
   );

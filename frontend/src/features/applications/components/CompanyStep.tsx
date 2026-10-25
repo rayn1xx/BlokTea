@@ -1,10 +1,9 @@
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@alfalab/core-components/button';
 
 import { useCompanyProfile } from '@/features/company/hooks';
 import { TAX_REGIME_LABELS } from '@/shared/i18n/ru';
 import { businessAge } from '@/shared/lib/business';
-import { Card, CardTitle, FieldTag, InfoRow, InfoRows, QueryGate, SourcedValue } from '@/shared/ui';
+import { Btn, Card, FieldTag, InfoRow, InfoRows, QueryGate, SourcedValue } from '@/shared/ui';
 
 export function CompanyStep() {
   const profile = useCompanyProfile();
@@ -12,16 +11,14 @@ export function CompanyStep() {
   return (
     <QueryGate query={profile}>
       {({ company, from_lk }) => (
-        <Card>
-          <CardTitle
-            right={
-              <Button view='transparent' size={32} onClick={() => navigate('/onboarding/company')}>
+        <Card
+          title='Данные компании'
+          right={
+              <Btn variant='ghost' size='s' onClick={() => navigate('/onboarding/company')}>
                 Изменить
-              </Button>
-            }
+              </Btn>
+          }
           >
-            Данные компании
-          </CardTitle>
           <InfoRows>
             <InfoRow label='Компания'>
               {company.short_name} <FieldTag kind='auto' />

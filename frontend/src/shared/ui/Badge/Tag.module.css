@@ -1,0 +1,64 @@
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.required {
+  color: var(--a-red);
+  background: var(--a-red-soft);
+}
+
+.situational {
+  color: #9a5b00;
+  background: var(--a-yellow-soft);
+}
+
+.auto {
+  color: var(--a-blue);
+  background: var(--a-blue-soft);
+}
+
+.lk {
+  color: var(--a-green);
+  background: var(--a-green-soft);
+}
+
+.purple {
+  color: var(--a-purple);
+  background: #f1e9ff;
+}
+
+.neutral {
+  color: var(--a-text-2);
+  background: var(--a-bg-soft);
+}
+
+.sourced {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fieldLabel {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ai {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}

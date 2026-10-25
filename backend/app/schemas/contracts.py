@@ -1,5 +1,3 @@
-"""Контракты API из раздела «Контракты API» ТЗ (К.1-К.15). Даты строками ISO 8601, деньги в копейках."""
-
 from typing import Any, Generic, Literal, TypeVar
 
 from pydantic import BaseModel, Field
@@ -85,9 +83,6 @@ class ErrorResponse(BaseModel):
     error: ErrorBody
 
 
-# К.2
-
-
 class InviteAcceptRequest(BaseModel):
     invite_code: str
     password: str
@@ -98,9 +93,6 @@ class InviteAcceptRequest(BaseModel):
 class InviteAcceptResponse(BaseModel):
     status: Literal["pending_approval"]
     login: str
-
-
-# К.3
 
 
 class Verification(BaseModel):
@@ -159,9 +151,6 @@ class Home(BaseModel):
     accounts: list[AccountSummary]
     onboarding: Onboarding
     unread_notifications: int
-
-
-# К.4
 
 
 class Registry(BaseModel):
@@ -282,9 +271,6 @@ class FinanceSummaryPatch(BaseModel):
     confirm: bool | None = None
 
 
-# К.5
-
-
 class Member(BaseModel):
     id: str
     user_id: str | None
@@ -341,9 +327,6 @@ class SigningRulesUpdate(BaseModel):
     version: int
 
 
-# К.6
-
-
 class ApplicationRef(BaseModel):
     id: str
     number: str
@@ -356,7 +339,9 @@ class Cta(BaseModel):
 
 class Task(BaseModel):
     id: str
-    type: Literal["info_request", "sign", "accept_offer", "send_application", "approve_member", "consent"]
+    type: Literal[
+        "info_request", "sign", "accept_offer", "send_application", "approve_member", "consent", "upload_document"
+    ]
     title: str
     application: ApplicationRef | None
     assignee: Person | None
@@ -367,11 +352,15 @@ class Task(BaseModel):
     created_at: str
 
 
+class DocumentRequestBody(BaseModel):
+    member_id: str
+    document_type: str
+    application_id: str | None = None
+    comment: str | None = None
+
+
 class MemberIdRequest(BaseModel):
     member_id: str
-
-
-# К.7
 
 
 class Product(BaseModel):
@@ -587,9 +576,6 @@ class Readiness(BaseModel):
     calculated_at: str
 
 
-# К.8-К.11
-
-
 class ApplicationSummary(BaseModel):
     id: str
     number: str
@@ -682,6 +668,29 @@ class InfoRequest(BaseModel):
     response: InfoRequestResponse | None
 
 
+class CallNote(BaseModel):
+    id: str
+    stage: ApplicationStatus
+    stage_title: str
+    called_at: str
+    duration_minutes: int | None
+    topic: str
+    summary: str
+    agreements: list[str]
+    next_step: str | None
+    next_step_due: str | None
+    author_name: str
+
+
+class CallNoteCreate(BaseModel):
+    topic: str
+    summary: str
+    agreements: list[str] = []
+    next_step: str | None = None
+    next_step_due: str | None = None
+    duration_minutes: int | None = None
+
+
 class Offered(BaseModel):
     product: ProductRef
     amount: Money
@@ -746,6 +755,7 @@ class ApplicationDetail(ApplicationSummary):
     timeline: list[TimelineEvent]
     status_text: StatusText
     info_requests: list[InfoRequest]
+    calls: list[CallNote] = []
     decision: Decision | None
     signing: SigningState | None
     version: int
@@ -813,6 +823,13 @@ class NextPayment(BaseModel):
     amount: Money
 
 
+class LoanPayment(BaseModel):
+    date: str
+    principal: Money
+    interest: Money
+    early: Money
+
+
 class Loan(BaseModel):
     id: str
     application_id: str | None
@@ -825,10 +842,8 @@ class Loan(BaseModel):
     overpayment_total: Money
     issued_to_account: str
     schedule: list[ScheduleRow]
+    payments: list[LoanPayment] = []
     source: Literal["alfa_lk", "system"]
-
-
-# К.12
 
 
 class DocumentType(BaseModel):
@@ -910,9 +925,6 @@ class MissingDocuments(BaseModel):
     items: list[MissingDocument]
 
 
-# К.13
-
-
 class FeedItem(BaseModel):
     id: str
     type: Literal["program", "product_update", "application_event", "industry", "tip"]
@@ -932,9 +944,6 @@ class Notification(BaseModel):
     text: str
     application_id: str | None
     route: str | None
-
-
-# К.14
 
 
 class QueueCompany(BaseModel):
@@ -1027,8 +1036,6 @@ class CounterOfferOptions(BaseModel):
 
 
 class BankDecisionRequest(BaseModel):
-    """approve | counter_offer | request_info | reject; поля зависят от type (К.14)."""
-
     type: Literal["approve", "counter_offer", "request_info", "reject"]
     comment: str | None = None
     amount: Money | None = None
@@ -1066,9 +1073,6 @@ class BankDashboard(BaseModel):
     avg_decision_minutes: int
     auto_decision_share: float
     info_request_share: float
-
-
-# К.15
 
 
 class LlmModels(BaseModel):

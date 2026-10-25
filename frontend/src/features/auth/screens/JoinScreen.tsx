@@ -1,6 +1,5 @@
 import { type FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@alfalab/core-components/button';
 import { Input } from '@alfalab/core-components/input';
 import { PasswordInput } from '@alfalab/core-components/password-input';
 
@@ -8,9 +7,9 @@ import { authApi } from '@/features/auth/api';
 import { AuthLayout } from '@/features/auth/components/AuthLayout';
 import { isApiError } from '@/shared/api/client';
 import { errorText, fieldErrors } from '@/shared/api/query';
-import { FieldTag, Note, Text } from '@/shared/ui';
+import { Btn, FieldTag, Note, Text } from '@/shared/ui';
 
-import styles from '../auth.module.css';
+import s from '../auth.module.css';
 
 export function JoinScreen() {
   const navigate = useNavigate();
@@ -46,15 +45,15 @@ export function JoinScreen() {
   if (done) {
     return (
       <AuthLayout title='Заявка на доступ отправлена' subtitle='Собственник подтвердит доступ, после этого войдите через Альфа-Бизнес'>
-        <div className={styles.success}>
+        <div className={s.success}>
           <Note tone='positive' title={`Ваш логин: ${done}`}>
             Запомните логин. Пароль вы только что придумали
           </Note>
         </div>
-        <div className={styles.actions}>
-          <Button view='primary' size={64} block onClick={() => navigate('/login')}>
+        <div className={s.actions}>
+          <Btn size='xl' block onClick={() => navigate('/login')}>
             Ко входу
-          </Button>
+          </Btn>
         </div>
       </AuthLayout>
     );
@@ -62,7 +61,7 @@ export function JoinScreen() {
 
   return (
     <AuthLayout title='Присоединиться к компании' subtitle='Введите код, который вам передал собственник'>
-      <form className={styles.form} onSubmit={submit} noValidate>
+      <form className={s.form} onSubmit={submit} noValidate>
         <Input
           label='Код приглашения'
           size={64}
@@ -88,12 +87,12 @@ export function JoinScreen() {
         <Text small secondary>
           ФИО, роль и логин подставятся из приглашения после проверки кода
         </Text>
-        <Button type='submit' view='primary' size={64} block loading={loading} className={styles.submit}>
+        <Btn type='submit' size='xl' block loading={loading} className={s.submit}>
           Отправить на подтверждение
-        </Button>
-        <Button view='transparent' size={48} block onClick={() => navigate('/')}>
+        </Btn>
+        <Btn variant='ghost' size='l' block onClick={() => navigate('/')}>
           Назад
-        </Button>
+        </Btn>
       </form>
     </AuthLayout>
   );

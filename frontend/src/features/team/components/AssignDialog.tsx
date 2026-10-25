@@ -10,10 +10,11 @@ import { useMembers } from '@/features/team/hooks';
 import type { Member } from '@/features/team/types';
 import { errorText, fieldErrors } from '@/shared/api/query';
 import { ROLE_LABELS } from '@/shared/i18n/ru';
+import { norm } from '@/shared/lib/format';
 import type { Permission } from '@/shared/types/common';
-import { Avatar, Btn, Dialog, IconCircle, InfoLine, SearchField, SkeletonLines, Stack, TextArea, TextLink } from '@/shared/ui';
+import { Avatar, Btn, Dialog, IconCircle, InfoLine, SearchField, SkeletonLines, Stack, Text, TextArea, TextLink } from '@/shared/ui';
 
-import a from './assign.module.css';
+import s from './AssignDialog.module.css';
 
 const CAN_TEXT: Record<Permission, string> = {
   upload_documents: 'Может загружать документы',
@@ -50,10 +51,10 @@ export function AssignDialog({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const q = query.trim().toLowerCase();
+  const q = norm(query.trim());
   const list = (members.data ?? [])
     .filter((m) => m.status === 'active' && m.user_id !== excludeUserId)
-    .filter((m) => !q || `${m.last_name} ${m.first_name} ${ROLE_LABELS[m.role]}`.toLowerCase().includes(q));
+    .filter((m) => !q || norm(`${m.last_name} ${m.first_name} ${ROLE_LABELS[m.role]}`).includes(q));
   const chosen = list.find((m) => m.id === selected);
 
   const submit = async () => {
@@ -85,24 +86,24 @@ export function AssignDialog({
               {chosen ? `Назначить: ${chosen.first_name}` : 'Назначить'}
             </Btn>
           </div>
-          <div className={a.note}>Задача появится у сотрудника в кабинете</div>
+          <div className={s.note}>Задача появится у сотрудника в кабинете</div>
         </div>
       }
     >
       <Stack gap={14}>
-        <div className={a.task}>
-          <IconCircle icon={DocumentMIcon} style={{ background: '#fff' }} />
+        <div className={s.task}>
+          <IconCircle icon={DocumentMIcon} white />
           <div>
             <b>{taskTitle}</b>
-            {taskSubtitle && <div className={a.muted}>{taskSubtitle}</div>}
+            {taskSubtitle && <div className={s.muted}>{taskSubtitle}</div>}
           </div>
         </div>
         <SearchField value={query} onChange={setQuery} placeholder='Поиск по имени или должности' />
-        <div className={a.label}>Сотрудники компании</div>
+        <div className={s.label}>Сотрудники компании</div>
         {members.isLoading ? (
           <SkeletonLines lines={3} />
         ) : (
-          <div className={a.list} role='radiogroup'>
+          <div className={s.list} role='radiogroup'>
             {list.map((m) => {
               const allowed = m.permissions.includes(permission);
               return (
@@ -112,18 +113,18 @@ export function AssignDialog({
                   role='radio'
                   aria-checked={selected === m.id}
                   disabled={!allowed}
-                  className={`${a.item} ${selected === m.id ? a.itemActive : ''}`}
+                  className={`${s.item} ${selected === m.id ? s.itemActive : ''}`}
                   onClick={() => setSelected(m.id)}
                 >
                   <Avatar name={`${m.first_name} ${m.last_name}`} />
-                  <span className={a.itemText}>
+                  <span className={s.itemText}>
                     <b>
                       {m.first_name} {m.last_name}
                     </b>
-                    <span className={a.muted}>{ROLE_LABELS[m.role]}</span>
-                    <span className={a.muted}>{allowed ? CAN_TEXT[permission] : 'Нет доступа к этой задаче'}</span>
+                    <span className={s.muted}>{ROLE_LABELS[m.role]}</span>
+                    <span className={s.muted}>{allowed ? CAN_TEXT[permission] : 'Нет доступа к этой задаче'}</span>
                   </span>
-                  <span className={a.radio} />
+                  <span className={s.radio} />
                 </button>
               );
             })}
@@ -134,20 +135,20 @@ export function AssignDialog({
             <Btn variant='outline' size='l' block leftAddons={<UserPlusMIcon style={{ width: 18, height: 18 }} />} onClick={() => navigate('/team?invite=1')}>
               Добавить сотрудника
             </Btn>
-            <div className={a.center}>Если сотрудника ещё нет в списке</div>
+            <div className={s.center}>Если сотрудника ещё нет в списке</div>
           </>
         )}
-        <div className={a.footerRow}>
+        <div className={s.footerRow}>
           <InfoLine>Назначение задачи не меняет права сотрудника.</InfoLine>
           <TextLink tone='blue' arrow onClick={() => navigate('/team')}>
             Управление сотрудниками
           </TextLink>
         </div>
-        <button type='button' className={a.commentToggle} onClick={() => setCommentOpen((v) => !v)}>
+        <button type='button' className={s.commentToggle} onClick={() => setCommentOpen((v) => !v)}>
           <ChevronDownMIcon style={{ width: 18, height: 18, transform: commentOpen ? 'rotate(180deg)' : undefined }} /> Добавить комментарий
         </button>
         {commentOpen && <TextArea value={comment} onChange={setComment} placeholder='Комментарий для сотрудника' />}
-        {error && <div style={{ color: 'var(--a-red)' }}>{error}</div>}
+        {error && <Text color='negative' tag='div'>{error}</Text>}
       </Stack>
     </Dialog>
   );

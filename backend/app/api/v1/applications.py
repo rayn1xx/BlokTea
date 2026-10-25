@@ -1,5 +1,3 @@
-"""Заявки, согласия, отправка, решение, запросы банка, подписание и кредиты (К.8, К.9, К.11)."""
-
 import uuid
 from typing import Annotated, Literal
 
@@ -48,7 +46,6 @@ ApplicationSort = Literal[
 async def list_applications(
     ctx: ClientDep,
     service: ApplicationServiceDep,
-    # ?status=draft&status=info_requested: несколько статусов через повтор параметра
     status: Annotated[list[ApplicationStatus] | None, Query()] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 10,
@@ -136,7 +133,6 @@ async def submit(
     app = await service.get_app(ctx, app_id, lock=True)
     await service.submit(ctx, app)
     await session.commit()
-    # автопроверки и скоринг идут после ответа: клиент сразу видит «отправлена»
     background.add_task(auto_review_job, session_factory, external_factory, app.id)
     return await service.detail(ctx, app)
 

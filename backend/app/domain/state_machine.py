@@ -1,5 +1,3 @@
-"""Явная машина состояний заявки (раздел К.16 ТЗ). Любой другой переход: 409 INVALID_TRANSITION."""
-
 DRAFT = "draft"
 SUBMITTED = "submitted"
 IN_REVIEW = "in_review"
@@ -28,13 +26,11 @@ TRANSITIONS: set[tuple[str, str]] = {
     *((status, CANCELLED) for status in CANCELLABLE),
 }
 
-# группы статусов для счётчиков на S5 и очереди банка
 DRAFTS = (DRAFT,)
 IN_BANK = (SUBMITTED, IN_REVIEW, INFO_REQUESTED)
 AWAITING_SIGNING = (APPROVED, COUNTER_OFFER, SIGNING)
 FINISHED = (ISSUED, REJECTED, CANCELLED)
 
-# у этих статусов есть одобренные сумма и срок
 DECIDED = (APPROVED, COUNTER_OFFER, SIGNING, ISSUED)
 
 

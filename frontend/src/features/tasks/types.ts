@@ -6,7 +6,8 @@ export type TaskType =
   | 'accept_offer'
   | 'send_application'
   | 'approve_member'
-  | 'consent';
+  | 'consent'
+  | 'upload_document';
 
 export type Task = {
   id: string;

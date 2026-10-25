@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { BankMIcon } from '@alfalab/icons-glyph/BankMIcon';
+import { CallMIcon } from '@alfalab/icons-glyph/CallMIcon';
 import { ClockLineMIcon } from '@alfalab/icons-glyph/ClockLineMIcon';
 import { DocumentLinesMIcon } from '@alfalab/icons-glyph/DocumentLinesMIcon';
 import { DocumentMIcon } from '@alfalab/icons-glyph/DocumentMIcon';
 import { MagnifierMIcon } from '@alfalab/icons-glyph/MagnifierMIcon';
 import { PencilMIcon } from '@alfalab/icons-glyph/PencilMIcon';
 
+import { CallList } from '@/features/applications/components/CallCard';
 import { CancelDialog } from '@/features/applications/components/CancelDialog';
 import { DecisionView } from '@/features/applications/components/DecisionView';
 import { AppStatusPill } from '@/features/applications/components/StatusLabel';
@@ -17,10 +19,9 @@ import { useLoans } from '@/features/loans/hooks';
 import { useCurrentHome } from '@/features/profile/components/AppShell/AppShell';
 import { appNo, formatLongDate, formatMoney, formatMonths, formatPercent, formatShortDateTime, formatTime, plural } from '@/shared/lib/format';
 import type { ApplicationStatus } from '@/shared/types/common';
-import { Accordion, Btn, IconCircle, PageHead, QueryGate, Stack, StageLine, TextLink, kit } from '@/shared/ui';
-import type { TimelineStage } from '@/shared/ui';
+import { Accordion, Btn, Card, IconCircle, PageHead, QueryGate, Stack, StageLine, TextLink, type TimelineStage } from '@/shared/ui';
 
-import c from '../card.module.css';
+import c from './ApplicationScreen.module.css';
 
 export function ApplicationScreen() {
   const { id = '' } = useParams();
@@ -90,13 +91,13 @@ function CardView({ app }: { app: ApplicationDetail }) {
         right={<AppStatusPill status={app.status} />}
       />
       <Stack gap={14}>
-        <section className={kit.box} style={{ padding: '24px 20px' }}>
+        <Card>
           <StageLine stages={stagesFor(app.status, app.timeline)} />
-        </section>
+        </Card>
 
         <section className={`${c.now} ${app.status === 'info_requested' ? c.nowYellow : ''}`}>
           <div className={c.nowMain}>
-            <IconCircle icon={now.icon} style={{ background: '#fff', width: 56, height: 56 }} />
+            <IconCircle icon={now.icon} white large />
             <div>
               <h2 className={c.nowTitle}>{now.title}</h2>
               <p className={c.nowText}>{app.status === 'info_requested' && openRequest ? openRequest.question : now.text}</p>
@@ -185,6 +186,16 @@ function CardView({ app }: { app: ApplicationDetail }) {
           onClick={() => navigate(`/applications/${app.id}/documents`)}
           arrow='none'
         />
+        {app.calls.length > 0 && (
+          <Accordion
+            icon={CallMIcon}
+            title='Звонки с банком'
+            subtitle={`Итоги разговоров с менеджером: ${app.calls.length} ${plural(app.calls.length, 'звонок', 'звонка', 'звонков')}`}
+            defaultOpen
+          >
+            <CallList calls={app.calls} />
+          </Accordion>
+        )}
         <Accordion icon={ClockLineMIcon} title='История заявки' subtitle={last ? `Последнее событие: ${last.title.toLowerCase()} · ${formatTime(last.at)}` : undefined}>
           <ul className={c.history}>
             {[...app.timeline].reverse().map((ev, i) => (

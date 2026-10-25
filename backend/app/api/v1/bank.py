@@ -1,5 +1,3 @@
-"""Банковский кабинет (К.14)."""
-
 import uuid
 from typing import Annotated, Literal
 
@@ -13,6 +11,7 @@ from app.schemas.contracts import (
     BankDashboard,
     BankDecisionRequest,
     BankQueueItem,
+    CallNoteCreate,
     CounterOfferOptions,
     DecisionPreview,
     InfoRequestTemplate,
@@ -57,6 +56,16 @@ async def take(
 ) -> BankApplicationDetail:
     app = await service.get_app(app_id, lock=True)
     await service.take(user, app)
+    await session.commit()
+    return await service.detail(user, app)
+
+
+@router.post("/applications/{app_id}/calls", status_code=201)
+async def add_call(
+    app_id: uuid.UUID, body: CallNoteCreate, user: UnderwriterDep, service: BankServiceDep, session: SessionDep
+) -> BankApplicationDetail:
+    app = await service.get_app(app_id)
+    await service.add_call(user, app, body.model_dump())
     await session.commit()
     return await service.detail(user, app)
 

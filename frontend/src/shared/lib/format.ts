@@ -119,3 +119,7 @@ export function appNo(number: string) {
   const digits = number.match(/(\d+)$/)?.[1];
   return digits ? `№${Number(digits)}` : number;
 }
+
+export function norm(value: string) {
+  return value.toLowerCase().replace(/ё/g, 'е');
+}

@@ -1,6 +1,6 @@
 import { useFinance, useReadiness } from '@/features/company/hooks';
 import { formatMoney } from '@/shared/lib/format';
-import { Card, CardTitle, InfoRow, InfoRows, Note, QueryGate, SourcedValue, SourceTag } from '@/shared/ui';
+import { Card, InfoRow, InfoRows, Note, QueryGate, SourcedValue, SourceTag } from '@/shared/ui';
 
 export function FinanceStep({ amount, term }: { amount: number; term: number }) {
   const finance = useFinance();
@@ -9,8 +9,7 @@ export function FinanceStep({ amount, term }: { amount: number; term: number }) 
   return (
     <QueryGate query={finance}>
       {(f) => (
-        <Card>
-          <CardTitle>Финансы</CardTitle>
+        <Card title='Финансы'>
           <InfoRows>
             <InfoRow label='Поступления в месяц'>
               <SourcedValue value={f.monthly_inflow_avg} render={(v) => formatMoney(v)} />

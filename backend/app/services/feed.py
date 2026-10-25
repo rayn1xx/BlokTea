@@ -1,5 +1,3 @@
-"""Лента (3.11: отбор правилами, без LLM), уведомления и кредиты (К.11, К.13)."""
-
 import math
 import uuid
 from datetime import date, timedelta
@@ -11,7 +9,7 @@ from app.core.errors import not_found
 from app.domain import readiness as readiness_domain
 from app.domain.catalog import PRODUCTS_BY_CODE
 from app.domain.facts import low_months
-from app.domain.finance import payment_schedule
+from app.domain.finance import payment_history, payment_schedule
 from app.integrations.external import ExternalSystems, optional
 from app.models import Application, ApplicationEvent, FeedItem, Loan, Notification, User
 from app.services.application_view import product_ref
@@ -23,7 +21,6 @@ MSP_TITLES = {"micro": "микропредприятие", "small": "малое 
 
 
 def matches(item: FeedItem, ctx: ClientContext, readiness_items: list[dict], has_seasonality: bool) -> str | None:
-    """Причина показа или None, если материал компании не подходит."""
     t = item.targeting or {}
     c = ctx.company
     legal_form = c.legal_form.value
@@ -31,7 +28,6 @@ def matches(item: FeedItem, ctx: ClientContext, readiness_items: list[dict], has
     if t.get("legal_forms") and legal_form not in t["legal_forms"]:
         return None
     if t.get("reason"):
-        # материал для всей формы бизнеса: причина задана в targeting
         return f"Показано, потому что: {t['reason']}"
     if item.type in ("program", "industry"):
         prefixes = t.get("okved_prefixes") or []
@@ -88,7 +84,6 @@ class FeedService:
                         "cta": row.cta,
                     }
                 )
-        # события по заявкам компании
         events = await self.session.execute(
             select(ApplicationEvent, Application)
             .join(Application, Application.id == ApplicationEvent.application_id)
@@ -96,7 +91,6 @@ class FeedService:
             .order_by(ApplicationEvent.at.desc())
             .limit(50)
         )
-        # по одному последнему событию на заявку, чтобы лента не превращалась в таймлайн
         latest = {}
         for event, app in events.all():
             latest.setdefault(app.id, (event, app))
@@ -119,7 +113,6 @@ class FeedService:
         start = (page - 1) * page_size
         return {"items": items[start : start + page_size], "page": page, "page_size": page_size, "total": len(items)}
 
-    # уведомления
 
     async def notifications(self, user: User, unread: bool) -> list[dict]:
         filters = [Notification.user_id == user.id]
@@ -150,7 +143,6 @@ class FeedService:
     async def read_all(self, user: User) -> None:
         await self.session.execute(update(Notification).where(Notification.user_id == user.id).values(read=True))
 
-    # кредиты
 
     def loan_view(self, loan: Loan, with_schedule: bool) -> dict:
         upcoming = next((r for r in loan.schedule if r["date"] >= now().date().isoformat()), None)
@@ -166,6 +158,11 @@ class FeedService:
             "overpayment_total": money(loan.overpayment_total),
             "issued_to_account": loan.issued_to_account,
             "schedule": loan.schedule if with_schedule else [],
+            "payments": [
+                {"date": r["date"], "principal": r["principal"], "interest": r["interest"], "early": money(0)}
+                for r in loan.schedule
+                if with_schedule and r["date"] < now().date().isoformat()
+            ],
             "source": loan.source,
         }
 
@@ -174,11 +171,14 @@ class FeedService:
         monthly = loan["monthly_payment"]["value"]
         balance = loan["balance"]["value"]
         schedule = []
+        payments = []
         if with_schedule and monthly:
             months = max(1, math.ceil(balance / monthly))
             first = date.fromisoformat(loan["next_payment_date"])
-            # график по остатку: первый платёж в ближайшую дату из ЛК
             schedule = payment_schedule(balance, months, loan["rate_percent"], first - timedelta(days=31))["schedule"]
+            payments = payment_history(
+                loan["amount"]["value"], loan["term_months"], loan["rate_percent"], balance, loan["term_months"] - months, first
+            )
             for i, row in enumerate(schedule):
                 y, m = divmod(first.month - 1 + i, 12)
                 row["date"] = date(first.year + y, m + 1, min(first.day, 28)).isoformat()
@@ -195,6 +195,7 @@ class FeedService:
             "overpayment_total": money(max(monthly * loan["term_months"] - loan["amount"]["value"], 0)),
             "issued_to_account": loan.get("account_mask", ""),
             "schedule": schedule,
+            "payments": payments,
             "source": "alfa_lk",
         }
 

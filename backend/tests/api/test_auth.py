@@ -29,7 +29,6 @@ async def login(client: AsyncClient, user: User, password: str = DEFAULT_PASSWOR
 
 
 async def refresh_with(client: AsyncClient, token: str) -> Response:
-    # явная cookie вместо банки клиента: чтобы отправить именно этот токен
     client.cookies.clear()
     return await client.post(REFRESH, headers={"Cookie": f"{COOKIE}={token}"})
 
@@ -75,7 +74,6 @@ class TestLogin:
         response = await client.post(LOGIN, json=body)
 
         assert response.status_code == 401
-        # одинаковый ответ: не раскрываем, существует ли логин
         assert response.json()["error"]["code"] == "UNAUTHORIZED"
         assert response.json()["error"]["message"] == "Неверный логин или пароль"
         assert "set-cookie" not in response.headers

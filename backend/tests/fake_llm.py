@@ -1,5 +1,3 @@
-"""Фейковый Ollama для тестов: отвечает на /api/chat по номеру задачи из запроса."""
-
 import json
 from collections.abc import Callable
 
@@ -9,8 +7,6 @@ Answer = Callable[[dict], dict | str]
 
 
 class FakeOllama:
-    """answers: задача (I1-I8) -> функция от input, возвращает объект ответа или сырую строку."""
-
     def __init__(self, answers: dict[str, Answer]) -> None:
         self.answers = answers
         self.calls: list[dict] = []

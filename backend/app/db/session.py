@@ -9,7 +9,6 @@ engine = create_async_engine(settings.database_url, echo=settings.sql_echo, pool
 SessionFactory = async_sessionmaker(engine, expire_on_commit=False)
 
 
-# зависимость FastAPI: одна сессия на запрос
 async def get_session() -> AsyncIterator[AsyncSession]:
     async with SessionFactory() as session:
         yield session

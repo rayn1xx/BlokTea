@@ -1,5 +1,3 @@
-"""Клиент LLM (8.1, 8.4): заглушка при сбоях, валидация схемой, проверка чисел, кеш."""
-
 from collections.abc import Iterator
 
 import httpx

@@ -1,0 +1,96 @@
+.bell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--a-text);
+  cursor: pointer;
+}
+
+.bell:hover {
+  background: var(--a-bg-soft);
+}
+
+.icon {
+  transform-origin: 50% 12%;
+}
+
+.badge {
+  position: absolute;
+  top: 2px;
+  right: 1px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--a-red);
+  color: #fff;
+  font-size: 11px;
+  line-height: 18px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.ring .icon,
+.bell:hover .icon {
+  animation: swing 2.4s ease-in-out infinite;
+}
+
+.bell:hover .icon {
+  animation-duration: 0.9s;
+}
+
+.ring .badge {
+  animation: pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes swing {
+  0%,
+  50%,
+  100% {
+    transform: rotate(0);
+  }
+  4% {
+    transform: rotate(16deg);
+  }
+  10% {
+    transform: rotate(-14deg);
+  }
+  16% {
+    transform: rotate(10deg);
+  }
+  22% {
+    transform: rotate(-7deg);
+  }
+  28% {
+    transform: rotate(4deg);
+  }
+  34% {
+    transform: rotate(-2deg);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  60%,
+  100% {
+    transform: scale(1);
+  }
+  70% {
+    transform: scale(1.18);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring .icon,
+  .bell:hover .icon,
+  .ring .badge {
+    animation: none;
+  }
+}

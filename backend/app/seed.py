@@ -1,9 +1,3 @@
-"""Демо-данные (раздел 6 ТЗ): python -m app.seed: создать, если базы ещё нет; --reset: вернуть к началу показа.
-
-Числа согласованы с моками (backend/mocks/data.py): поступления 2 100 000 ₽, расходы 1 450 000 ₽, платежи по
-кредитам 118 400 ₽ в месяц. Все люди и компании вымышлены.
-"""
-
 import argparse
 import asyncio
 import shutil
@@ -51,7 +45,6 @@ from mocks.main import simple_pdf
 MSK = timezone(timedelta(hours=3))
 DEMO_PASSWORD = "alfa2026"
 INVITE_CODE = "4821-KX"
-# справочники, которые заполняет миграция, и служебная таблица alembic
 KEEP_TABLES = {"credit_products"}
 
 
@@ -71,7 +64,6 @@ U_SMIRNOV, U_PETROV, U_MALKINA, U_LES, U_ORLOVA, U_ANALYST, U_ADMIN, U_NOROLE, U
 )
 
 USERS = [
-    # id, логин, фамилия, имя, отчество, дата рождения, роль в банке, пароль
     (U_SMIRNOV, "petr.smirnov@test.local", "Смирнов", "Пётр", "Иванович", date(1978, 5, 14), None, DEMO_PASSWORD),
     (U_PETROV, "sergey.petrov@test.local", "Петров", "Сергей", "Александрович", date(1981, 9, 2), None, DEMO_PASSWORD),
     (U_MALKINA, "anna.malkina@test.local", "Малькина", "Анна", "Викторовна", date(1988, 1, 23), None, DEMO_PASSWORD),
@@ -79,9 +71,7 @@ USERS = [
     (U_ORLOVA, "maria.orlova@test.local", "Орлова", "Мария", "Сергеевна", date(1990, 3, 8), None, DEMO_PASSWORD),
     (U_ANALYST, "analyst@test.local", "Кузнецова", "Елена", "Павловна", None, BankRole.UNDERWRITER, DEMO_PASSWORD),
     (U_ADMIN, "bank.admin@test.local", "Захаров", "Олег", "Игоревич", None, BankRole.BANK_ADMIN, DEMO_PASSWORD),
-    # вход есть, роли в компании нет: экран «Нет доступа к компании»
     (U_NOROLE, "no.role@test.local", "Гусев", "Антон", None, None, None, DEMO_PASSWORD),
-    # учётка разработчика из прежнего seed
     (U_SERBELKO, "serbelko", "Сербелько", "Разработчик", None, None, None, "1234"),
 ]
 
@@ -128,7 +118,6 @@ COMPANIES = [
 ]
 
 MEMBERS = [
-    # компания, пользователь, роль, фамилия, имя, отчество, логин
     (MASHPROM, U_SMIRNOV, UserRole.OWNER, "Смирнов", "Пётр", "Иванович", "petr.smirnov@test.local"),
     (MASHPROM, U_PETROV, UserRole.OWNER, "Петров", "Сергей", "Александрович", "sergey.petrov@test.local"),
     (MASHPROM, U_MALKINA, UserRole.CFO_OR_ACCOUNTANT, "Малькина", "Анна", "Викторовна", "anna.malkina@test.local"),
@@ -347,10 +336,8 @@ async def reset(session) -> None:
 
 async def seed(session) -> None:
     hasher = get_password_hasher()
-    # пользователи, которые уже есть в базе (например, из прежнего seed), не пересоздаём
     existing = {u.login: u.id for u in await session.scalars(select(User).where(User.login.in_([u[1] for u in USERS])))}
     user_ids = {}
-    # у демо-учёток один пароль: хешируем его один раз (соль в хеше всё равно своя у каждого хеша)
     hashes = {password: hasher.hash(password) for *_, password in USERS}
     for user_id, login, last, first, middle, birth, bank_role, password in USERS:
         user_ids[user_id] = existing.get(login, user_id)
@@ -390,7 +377,6 @@ async def seed(session) -> None:
                 created_at=msk("2024-02-01T10:00:00") + timedelta(minutes=i),
             )
         )
-    # приглашение из раздела 6: код 4821-KX для «Котов Олег»
     session.add(
         Member(
             company_id=MASHPROM,
@@ -453,7 +439,6 @@ async def seed(session) -> None:
         )
     )
 
-    # документы компании: устав принят, решение о директоре истекает 31.03, выписка другого банка отклонена
     docs = [
         (
             uid(2001),
@@ -621,7 +606,6 @@ async def seed_applications(session) -> None:
         "2026-08-11T10:00:00",
         "2026-08-12T09:00:00",
     )
-    # выданный кредит виден в Альфа-Бизнесе как alfa-loan-1, поэтому отдельный Loan не создаём
     issued = application(
         6,
         MASHPROM,

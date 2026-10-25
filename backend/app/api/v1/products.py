@@ -1,5 +1,3 @@
-"""Продукты, калькулятор, подбор, предодобренный лимит (К.7)."""
-
 import uuid
 
 from fastapi import APIRouter, Response, status

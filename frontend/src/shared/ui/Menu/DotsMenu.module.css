@@ -1,0 +1,37 @@
+.anchor {
+  position: relative;
+}
+
+.menu {
+  position: absolute;
+  top: 46px;
+  right: 0;
+  z-index: 50;
+  min-width: 200px;
+  padding: 6px;
+  border: 1px solid var(--a-border);
+  border-radius: var(--a-radius-control);
+  background: var(--a-bg);
+  box-shadow: var(--a-shadow-popup);
+}
+
+.item {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.item:hover {
+  background: var(--a-bg-soft);
+}
+
+.danger {
+  color: var(--a-red);
+}

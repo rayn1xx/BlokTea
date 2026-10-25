@@ -19,8 +19,8 @@ import { SigningTab } from '@/features/team/screens/SigningTab';
 import { errorText, queryClient } from '@/shared/api/query';
 import { keys } from '@/shared/api/queryKeys';
 import { ROLE_LABELS } from '@/shared/i18n/ru';
-import { appNo, plural } from '@/shared/lib/format';
-import { Avatar, Btn, IconCircle, InfoStrip, PageHead, Pill, SearchField, SkeletonLines, Stack, Tabs, kit } from '@/shared/ui';
+import { appNo, norm, plural } from '@/shared/lib/format';
+import { Avatar, Btn, Cell, IconCircle, InfoStrip, PageHead, Pill, SearchField, SkeletonLines, Stack, Table, Tabs, Text } from '@/shared/ui';
 
 type TabId = 'team' | 'company' | 'signing';
 
@@ -97,8 +97,8 @@ function TeamTab({ canManage }: { canManage: boolean }) {
     onError: (e) => setError(errorText(e)),
   });
 
-  const q = query.trim().toLowerCase();
-  const list = (members.data ?? []).filter((m) => m.status !== 'disabled').filter((m) => !q || `${m.last_name} ${m.first_name} ${ROLE_LABELS[m.role]}`.toLowerCase().includes(q));
+  const q = norm(query.trim());
+  const list = (members.data ?? []).filter((m) => m.status !== 'disabled').filter((m) => !q || norm(`${m.last_name} ${m.first_name} ${ROLE_LABELS[m.role]}`).includes(q));
   const tasksOf = (m: Member) => (tasks.data ?? []).filter((x) => x.assignee?.user_id === m.user_id);
 
   return (
@@ -107,8 +107,7 @@ function TeamTab({ canManage }: { canManage: boolean }) {
       {members.isLoading ? (
         <SkeletonLines lines={4} />
       ) : (
-        <div className={kit.tableWrap}>
-          <table className={kit.table}>
+        <Table>
             <thead>
               <tr>
                 <th>Сотрудник</th>
@@ -126,23 +125,11 @@ function TeamTab({ canManage }: { canManage: boolean }) {
                 return (
                   <tr key={m.id}>
                     <td>
-                      <div className={t.memberCell}>
-                        <Avatar name={name} />
-                        <div>
-                          <div className={kit.cellTitle}>{name}</div>
-                          <div className={kit.cellSub}>
-                            {ROLE_LABELS[m.role]}
-                            {me ? ' · это вы' : ''}
-                          </div>
-                        </div>
-                      </div>
+                      <Cell leading={<Avatar name={name} />} title={name} sub={`${ROLE_LABELS[m.role]}${me ? ' · это вы' : ''}`} />
                     </td>
                     <td>
                       {m.status === 'active' ? (
-                        <>
-                          <div>{a.main}</div>
-                          <div className={kit.cellSub}>{a.sub}</div>
-                        </>
+                        <Cell title={a.main} sub={a.sub} />
                       ) : (
                         <Pill small tone={m.status === 'pending_approval' ? 'yellow' : 'blue'}>
                           {m.status === 'pending_approval' ? 'Ждёт подтверждения' : 'Приглашён'}
@@ -151,15 +138,15 @@ function TeamTab({ canManage }: { canManage: boolean }) {
                     </td>
                     <td>
                       {own.length ? (
-                        <>
-                          <div>
-                            {own.length} {plural(own.length, 'задача', 'задачи', 'задач')}
-                          </div>
-                          <div className={kit.cellSub}>
-                            {own[0].title}
-                            {own[0].application ? ` по заявке ${appNo(own[0].application.number)}` : ''}
-                          </div>
-                        </>
+                        <Cell
+                          title={`${own.length} ${plural(own.length, 'задача', 'задачи', 'задач')}`}
+                          sub={
+                            <>
+                              {own[0].title}
+                              {own[0].application ? ` по заявке ${appNo(own[0].application.number)}` : ''}
+                            </>
+                          }
+                        />
                       ) : (
                         <span>Нет задач</span>
                       )}
@@ -183,10 +170,9 @@ function TeamTab({ canManage }: { canManage: boolean }) {
                 );
               })}
             </tbody>
-          </table>
-        </div>
+          </Table>
       )}
-      {error && <div style={{ color: 'var(--a-red)' }}>{error}</div>}
+      {error && <Text color='negative' tag='div'>{error}</Text>}
       <InfoStrip>Должность и права доступа: разные настройки. Назначение задачи не выдаёт право подписи.</InfoStrip>
       <button type='button' className={t.sendRow} style={{ background: '#fff', font: 'inherit', textAlign: 'left', cursor: 'pointer' }} onClick={() => navigate('/team/signing')}>
         <span style={{ display: 'flex', gap: 14, alignItems: 'center' }}>

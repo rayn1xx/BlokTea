@@ -1,9 +1,3 @@
-"""Документы (К.12). Тип файла проверяется по сигнатуре, имя файла пользователя в путь не попадает.
-
-Анализ документов (И1-И3): с LLM идёт в фоне после загрузки (status analyzing), без LLM или при сбое
-модели заглушка: тип выбирает пользователь, проверка ручная.
-"""
-
 import logging
 import re
 import uuid
@@ -23,6 +17,7 @@ from app.models import Application, Company, Document, InfoRequest
 from app.services import ai
 from app.services.application_view import SIGN_DOC_TITLES
 from app.services.common import ClientContext, People, iso, now, today
+from app.services.events import close_tasks
 from app.services.company_data import CompanyData, effective_document_status
 
 log = logging.getLogger(__name__)
@@ -38,7 +33,6 @@ CONTENT_TYPES = {
 
 
 def detect_format(head: bytes) -> str | None:
-    """Формат по сигнатуре файла, а не по расширению."""
     if head.startswith(b"%PDF"):
         return "pdf"
     if head.startswith(b"\x89PNG\r\n\x1a\n"):
@@ -66,10 +60,6 @@ def safe_file_name(name: str | None) -> str:
 
 
 def stub_analysis(doc: Document, requested_types: list[str] | None, status: str = "unavailable") -> dict:
-    """Анализ без LLM: только проверки, которые делает код; остальное проверит сотрудник.
-
-    unavailable: LLM выключена; failed: модель не смогла прочитать документ.
-    """
     checks = []
     issues = [{"severity": "info", "text": texts.MANUAL_CHECK_TEXT}]
     if requested_types:
@@ -115,7 +105,6 @@ def file_format(doc: Document) -> str | None:
 
 
 async def run_analysis(session: AsyncSession, doc: Document) -> None:
-    """И1-И3 для документа; при сбое модели заглушка. Тип 'other' заменяется уверенно определённым."""
     request = await session.get(InfoRequest, doc.info_request_id) if doc.info_request_id else None
     requested = request.document_types if request else None
     company = await session.get(Company, doc.company_id)
@@ -146,7 +135,6 @@ async def run_analysis(session: AsyncSession, doc: Document) -> None:
 
 
 async def analyze_document_job(session_factory: async_sessionmaker[AsyncSession], doc_id: uuid.UUID) -> None:
-    """Фоновый анализ после загрузки: своя сессия, как у автопроверок заявки."""
     try:
         async with session_factory() as session:
             doc = await session.get(Document, doc_id, with_for_update=True)
@@ -333,6 +321,7 @@ class DocumentService:
             uploaded_at=now(),
         )
         doc.file_path = self.store(ctx.company.id, doc.id, 1, content)
+        await close_tasks(self.session, types=["upload_document"], ref_id=doc_type, assignee=ctx.user.id)
         self.start_analysis(doc, request)
         self.session.add(doc)
         await self.session.flush()
@@ -398,7 +387,6 @@ class DocumentService:
         return self.view(doc, await People.load(self.session, ctx.company))
 
     def start_analysis(self, doc: Document, request: InfoRequest | None) -> None:
-        """С LLM документ уходит на фоновый анализ (analyze_document_job), без неё сразу заглушка."""
         if needs_llm_analysis(doc):
             doc.status = "analyzing"
             doc.analysis = pending_analysis()
@@ -423,7 +411,6 @@ class DocumentService:
         await self.session.delete(doc)
 
     async def file(self, ctx: ClientContext, doc_id: str) -> tuple[bytes, str, str]:
-        """Содержимое, content-type и имя файла. sign-{app}-{type}: документ на подпись генерируется."""
         match = re.fullmatch(r"sign-([0-9a-f-]{36})-(contract|surety|deal_approval)", doc_id)
         if match:
             app = await self.session.get(Application, uuid.UUID(match[1]))

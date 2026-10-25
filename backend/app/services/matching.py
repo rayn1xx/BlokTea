@@ -1,5 +1,3 @@
-"""Продукты, калькулятор, подбор и рекомендация, предодобренный лимит (К.7)."""
-
 import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -100,7 +98,6 @@ class MatchingService:
 
     async def create(self, ctx: ClientContext) -> dict:
         ctx.require("submit_applications", "Подбор доступен тем, кто подаёт заявки")
-        # ожидаемые оплаты по выставленным счетам подставляем из Альфа-Бизнеса
         invoices = await optional(self.external.invoices(ctx.company.inn)) or []
         extra = dict(EMPTY_EXTRA)
         extra["expected_payments"] = [
@@ -132,7 +129,6 @@ class MatchingService:
     async def patch(self, ctx: ClientContext, session_id: uuid.UUID, body: dict) -> dict:
         s = await self.get(ctx, session_id)
         if not body:
-            # пустой PATCH работает как чтение и не меняет updated_at (open-questions #1)
             return session_view(s)
         errors = {}
         if body.get("need") is not None:

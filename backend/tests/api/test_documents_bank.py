@@ -1,5 +1,3 @@
-"""Документы (К.12) и банковский кабинет (К.14)."""
-
 from httpx import AsyncClient
 
 from app.seed import U_ADMIN, U_ANALYST, U_MALKINA, U_SMIRNOV, uid
@@ -35,7 +33,6 @@ class TestDocuments:
         assert fake.status_code == 422
         assert good.status_code == 201
         assert good.json()["file_name"] == "passwd.pdf"
-        # без LLM анализ недоступен: проверит сотрудник
         assert good.json()["analysis"]["status"] == "unavailable"
         assert good.json()["analysis"]["text_source"] == "template"
         file = await client.get(f"{API}/documents/{good.json()['id']}/file", headers=auth(U_MALKINA))
@@ -174,6 +171,36 @@ class TestBank:
         assert body["decision"]["decided_by"] == "underwriter"
         assert body["approved_amount"] == {"value": 90_000_000, "currency": "RUB"}
 
+    async def test_call_note(self, client: AsyncClient, demo: None) -> None:
+        response = await client.post(
+            f"{API}/bank/applications/{REVIEW_APP}/calls",
+            headers=auth(U_ANALYST),
+            json={
+                "topic": "Уточнили обороты",
+                "summary": "Клиент подтвердил сезонный спад летом",
+                "agreements": ["Пришлёт выписку за июль", " "],
+                "next_step": "Загрузить выписку",
+                "next_step_due": "2026-11-01",
+                "duration_minutes": 15,
+            },
+        )
+
+        assert response.status_code == 201
+        call = response.json()["calls"][0]
+        assert call["topic"] == "Уточнили обороты"
+        assert call["stage"] == "in_review"
+        assert call["agreements"] == ["Пришлёт выписку за июль"]
+        assert call["next_step_due"] == "2026-11-01"
+        assert response.json()["timeline"][-1]["title"] == "Звонок с банком"
+
+    async def test_call_note_validation(self, client: AsyncClient, demo: None) -> None:
+        response = await client.post(
+            f"{API}/bank/applications/{REVIEW_APP}/calls", headers=auth(U_ANALYST), json={"topic": " ", "summary": ""}
+        )
+
+        assert response.status_code == 422
+        assert set(response.json()["error"]["details"]) == {"topic", "summary"}
+
     async def test_settings_only_admin_edits(self, client: AsyncClient, demo: None) -> None:
         current = (await client.get(f"{API}/bank/settings/scoring", headers=auth(U_ANALYST))).json()
         changed = {**current, "approve_min": 75}
@@ -188,6 +215,7 @@ class TestBank:
             f"{API}/bank/settings/scoring", headers=auth(U_ADMIN), json={**current, "manual_review_min": 90}
         )
         assert bad.status_code == 422
+        assert bad.json()["error"]["details"]["manual_review_min"].startswith("Не выше порога других условий")
 
     async def test_dashboard(self, client: AsyncClient, demo: None) -> None:
         body = (await client.get(f"{API}/bank/dashboard", headers=auth(U_ADMIN))).json()

@@ -22,7 +22,6 @@ def create_test_engine() -> AsyncEngine:
 
 
 def recreate_database() -> None:
-    # база удаляется целиком: защита от запуска на рабочей БД
     if not settings.postgres_db.endswith("_test"):
         raise RuntimeError(f"тесты запускаются только на базе *_test, а не {settings.postgres_db!r}")
 

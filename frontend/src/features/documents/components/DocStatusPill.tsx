@@ -1,6 +1,5 @@
 import type { DocumentRef } from '@/features/documents/types';
-import { Pill } from '@/shared/ui';
-import type { PillTone } from '@/shared/ui';
+import { Pill, type PillTone } from '@/shared/ui';
 
 const MAP: Record<DocumentRef['status'], { label: string; tone: PillTone }> = {
   uploaded: { label: 'Загружен', tone: 'grey' },

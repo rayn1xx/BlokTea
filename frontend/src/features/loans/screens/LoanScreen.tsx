@@ -4,15 +4,16 @@ import { CheckmarkCircleMIcon } from '@alfalab/icons-glyph/CheckmarkCircleMIcon'
 import { DocumentMIcon } from '@alfalab/icons-glyph/DocumentMIcon';
 import { DownloadMIcon } from '@alfalab/icons-glyph/DownloadMIcon';
 
+import { PaymentsHistory } from '@/features/loans/components/PaymentsHistory';
 import { useLoan } from '@/features/loans/hooks';
 import type { Loan } from '@/features/loans/types';
 import { ContractMetrics } from '@/features/signing/screens/SigningScreen';
 import { requestFile } from '@/shared/api/client';
 import { errorText } from '@/shared/api/query';
 import { formatLongDate, formatMoney, formatMonths, formatNumericDate, formatPercent, plural } from '@/shared/lib/format';
-import { Accordion, Btn, Dialog, Metrics, PageHead, Panel, QueryGate, Stack, Tabs, TextLink, kit } from '@/shared/ui';
+import { Accordion, Btn, Card, Dialog, Metrics, PageHead, Panel, QueryGate, Stack, Table, Tabs, Text, TextLink } from '@/shared/ui';
 
-import l from '../loans.module.css';
+import s from './LoanScreen.module.css';
 
 export function LoanScreen() {
   const { id = '' } = useParams();
@@ -40,7 +41,7 @@ function useContract(loan: Loan) {
   };
   const dialog = preview ? (
     <Dialog open onClose={() => setPreview(null)} title='Кредитный договор' size={800}>
-      <pre className={l.preview}>{preview}</pre>
+      <pre className={s.preview}>{preview}</pre>
     </Dialog>
   ) : null;
   return { open, dialog, error, available: !!loan.application_id };
@@ -53,13 +54,13 @@ function Issued({ loan }: { loan: Loan }) {
   const payments = loan.schedule.slice(0, 3);
 
   return (
-    <div className={l.page}>
+    <div className={s.page}>
       <PageHead
         back={{ label: 'Кредитование', to: '/home' }}
         title={
           issued ? (
-            <span className={l.titleRow}>
-              <CheckmarkCircleMIcon className={l.ok} /> {formatMoney(loan.amount)} зачислены на ваш счёт
+            <span className={s.titleRow}>
+              <CheckmarkCircleMIcon className={s.ok} /> {formatMoney(loan.amount)} зачислены на ваш счёт
             </span>
           ) : (
             loan.product.name
@@ -76,27 +77,25 @@ function Issued({ loan }: { loan: Loan }) {
       />
       <Stack gap={16}>
         <Panel>
-          <div className={l.section}>Условия договора</div>
+          <div className={s.section}>Условия договора</div>
           <ContractMetrics amount={loan.amount} term={loan.term_months} payment={loan.next_payment?.amount ?? loan.schedule[0]?.payment ?? { value: 0, currency: 'RUB' }} overpayment={loan.overpayment_total} rate={loan.rate_percent} />
         </Panel>
-        <section className={kit.box}>
-          <h2 className={kit.boxTitle} style={{ marginBottom: 6 }}>
-            Ближайшие платежи
-          </h2>
+        {loan.payments?.length > 0 && <PaymentsHistory payments={loan.payments} />}
+        <Card title='Ближайшие платежи'>
           {payments.map((p) => (
-            <div key={p.n} className={l.payment}>
+            <div key={p.n} className={s.payment}>
               <span>{formatNumericDate(p.date)}</span>
               <b>{formatMoney(p.payment)}</b>
             </div>
           ))}
-          <div className={l.paymentFoot}>
+          <div className={s.paymentFoot}>
             <span>Платёж спишется автоматически с расчётного счёта. Напомним в кабинете за 3 дня.</span>
             <TextLink underline onClick={() => navigate(`/loans/${loan.id}/schedule`)}>
               Погасить досрочно
             </TextLink>
           </div>
-        </section>
-        <div className={l.actions}>
+        </Card>
+        <div className={s.actions}>
           <Btn variant='outline' size='l' onClick={() => navigate(`/loans/${loan.id}/schedule`)}>
             График платежей
           </Btn>
@@ -104,8 +103,8 @@ function Issued({ loan }: { loan: Loan }) {
             В кабинет
           </Btn>
         </div>
-        <div className={l.muted}>Кредит уже появился в разделе «Действующие кредиты».</div>
-        {contract.error && <div style={{ color: 'var(--a-red)' }}>{contract.error}</div>}
+        <div className={s.muted}>Кредит уже появился в разделе «Действующие кредиты».</div>
+        {contract.error && <Text color='negative' tag='div'>{contract.error}</Text>}
       </Stack>
       {contract.dialog}
     </div>
@@ -133,7 +132,7 @@ function Schedule({ loan }: { loan: Loan }) {
   };
 
   return (
-    <div className={l.page}>
+    <div className={s.page}>
       <PageHead back={{ label: 'К кредиту', to: `/loans/${loan.id}` }} title='График платежей' subtitle={loan.product.name} />
       <Stack gap={16}>
         <Panel>
@@ -147,31 +146,30 @@ function Schedule({ loan }: { loan: Loan }) {
             ]}
           />
         </Panel>
-        <div className={l.muted}>Демонстрационный график: расчёт по месяцам, без комиссий.</div>
+        <div className={s.muted}>Демонстрационный график: расчёт по месяцам, без комиссий.</div>
         {next && (
           <Panel tone='green'>
-            <div className={l.nextRow}>
+            <div className={s.nextRow}>
               <div>
-                <div className={l.muted}>Ближайший платёж</div>
-                <div className={l.next}>
+                <div className={s.muted}>Ближайший платёж</div>
+                <div className={s.next}>
                   {formatLongDate(next.date)} · {formatMoney(next.amount)}
                 </div>
               </div>
-              <div className={l.nextSide}>
+              <div className={s.nextSide}>
                 <b>Будет списан с расчётного счёта</b>
-                <div className={l.muted}>Обеспечьте нужную сумму к дате платежа.</div>
+                <div className={s.muted}>Обеспечьте нужную сумму к дате платежа.</div>
               </div>
             </div>
           </Panel>
         )}
-        <div className={l.yearRow}>
+        <div className={s.yearRow}>
           <Tabs value={year} onChange={setYear} items={years.map((y) => ({ id: y, label: y }))} />
           <Btn variant='outline' size='m' leftAddons={<DownloadMIcon style={{ width: 18, height: 18 }} />} onClick={download}>
             Скачать график
           </Btn>
         </div>
-        <div className={kit.tableWrap}>
-          <table className={kit.table}>
+        <Table>
             <thead>
               <tr>
                 <th>Дата</th>
@@ -192,18 +190,17 @@ function Schedule({ loan }: { loan: Loan }) {
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
-        <div className={l.muted}>
+          </Table>
+        <div className={s.muted}>
           Показаны {rows.length} {plural(rows.length, 'платёж', 'платежа', 'платежей')} за {year} год · всего {loan.schedule.length} {plural(loan.schedule.length, 'платёж', 'платежа', 'платежей')}.
         </div>
         <Accordion title='Из чего складывается платёж'>
-          <div className={l.muted}>
+          <div className={s.muted}>
             Каждый платёж одинаковый (аннуитетный). В начале срока большая часть уходит на проценты, к концу на основной долг. Проценты начисляются на остаток долга по ставке {formatPercent(loan.rate_percent, 0)} годовых.
           </div>
         </Accordion>
-        <div className={l.muted}>Последний платёж может отличаться из-за округления. Точный график указан в договоре.</div>
-        <div className={l.footer}>
+        <div className={s.muted}>Последний платёж может отличаться из-за округления. Точный график указан в договоре.</div>
+        <div className={s.footer}>
           {contract.available ? (
             <Btn variant='outline' size='l' leftAddons={<DocumentMIcon style={{ width: 18, height: 18 }} />} onClick={contract.open}>
               Открыть договор

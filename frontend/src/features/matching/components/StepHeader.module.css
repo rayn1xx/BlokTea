@@ -1,0 +1,16 @@
+.stepHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.stepCaption {
+  font-size: 14px;
+  color: var(--a-text-2);
+}
+
+.stepCaption b {
+  color: var(--a-text);
+  font-weight: 500;
+}

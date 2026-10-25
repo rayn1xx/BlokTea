@@ -28,8 +28,6 @@ class MspCategory(StrEnum):
 
 @dataclass
 class CompanyVerification:
-    """Откуда и когда подтверждены данные компании (например, выписка ЕГРЮЛ)."""
-
     source: str
     verified_at: datetime
 
@@ -39,9 +37,7 @@ class Company(TimestampMixin, Base):
     __table_args__ = (
         CheckConstraint("inn ~ '^[0-9]{10}([0-9]{2})?$'", name="inn_format"),
         CheckConstraint("ogrn ~ '^[0-9]{13}([0-9]{2})?$'", name="ogrn_format"),
-        # с 2019 года в 5–6 позициях КПП допускаются латинские буквы
         CheckConstraint("kpp ~ '^[0-9]{4}[0-9A-Z]{2}[0-9]{3}$'", name="kpp_format"),
-        # ИП: ИНН 12 цифр, ОГРНИП 15, КПП нет; ООО: ИНН 10, ОГРН 13, КПП обязателен
         CheckConstraint(
             "(legal_form = 'IP' AND length(inn) = 12 AND length(ogrn) = 15 AND kpp IS NULL)"
             " OR (legal_form = 'OOO' AND length(inn) = 10 AND length(ogrn) = 13 AND kpp IS NOT NULL)",
@@ -58,7 +54,6 @@ class Company(TimestampMixin, Base):
     full_name: Mapped[str] = mapped_column(String(500))
     short_name: Mapped[str] = mapped_column(String(255))
     registration_date: Mapped[date] = mapped_column(Date)
-    # код и название: "25.62 Обработка металлических изделий механическая"
     okved_main: Mapped[str] = mapped_column(String(255))
     okved_additional: Mapped[list[str]] = mapped_column(
         ARRAY(String(255)), default=list, server_default=text("'{}'")
@@ -69,7 +64,6 @@ class Company(TimestampMixin, Base):
     )
     msp_category: Mapped[MspCategory | None] = mapped_column(pg_enum(MspCategory, "msp_category"))
     employees_count: Mapped[int | None] = mapped_column(Integer)
-    # подписывает кредитный договор по правилам подписи ООО
     director_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
 
     verification: Mapped[CompanyVerification] = composite(

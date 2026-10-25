@@ -1,0 +1,67 @@
+.line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--a-text-2);
+}
+
+.spaced {
+  margin-top: 14px;
+}
+
+.line svg,
+.strip svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+.strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--a-radius-control);
+  background: var(--a-bg-soft);
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--a-text-2);
+}
+
+.stripText {
+  flex: 1;
+}
+
+.dash {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 140px;
+  padding: 20px;
+  border: 1.5px dashed var(--a-control-border);
+  border-radius: var(--a-radius);
+  text-align: center;
+  color: var(--a-text-2);
+}
+
+.dash svg {
+  width: 32px;
+  height: 32px;
+}
+
+.dashTitle {
+  font-weight: 500;
+  color: var(--a-text);
+}
+
+.dashText {
+  font-size: 14px;
+}
+
+.skeleton {
+  border-radius: 12px;
+}

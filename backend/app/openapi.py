@@ -1,5 +1,3 @@
-"""Выгрузка OpenAPI-спеки: python -m app.openapi > ../docs/openapi.yaml"""
-
 import sys
 
 import yaml

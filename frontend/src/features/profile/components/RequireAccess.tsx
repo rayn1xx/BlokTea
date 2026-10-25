@@ -1,11 +1,10 @@
 import type { ReactNode } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { Button } from '@alfalab/core-components/button';
 
 import { can, type Capability, CAPABILITY_TEXT, whoCan } from '@/app/access';
 import { useCurrentHome } from '@/features/profile/components/AppShell/AppShell';
 import { ROLE_LABELS } from '@/shared/i18n/ru';
-import { Card, NoRightsState } from '@/shared/ui';
+import { Btn, Card, NoRightsState, Row } from '@/shared/ui';
 
 export function RequireAccess({ capability, children }: { capability: Exclude<Capability, 'bank'>; children?: ReactNode }) {
   const home = useCurrentHome();
@@ -23,11 +22,11 @@ export function RequireAccess({ capability, children }: { capability: Exclude<Ca
             </>
           }
         />
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <Button view='secondary' size={48} onClick={() => navigate('/home')}>
+        <Row justify='center'>
+          <Btn variant='soft' size='l' onClick={() => navigate('/home')}>
             На главную
-          </Button>
-        </div>
+          </Btn>
+        </Row>
       </Card>
     );
   }

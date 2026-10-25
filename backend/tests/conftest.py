@@ -1,6 +1,5 @@
 import os
 
-# до импорта app: настройки читаются один раз при импорте app.core.config
 os.environ["POSTGRES_DB"] = os.environ.get("TEST_POSTGRES_DB", "bloktea_test")
 os.environ["REDIS_DB"] = os.environ.get("TEST_REDIS_DB", "15")
 os.environ["JWT_SECRET"] = "test-secret"
@@ -22,7 +21,6 @@ from tests.factories import make_user  # noqa: E402
 
 TESTS_DIR = Path(__file__).parent
 CATEGORIES = {"unit", "integration", "api", "migrations"}
-# справочники заполняет миграция: между тестами их не чистим
 REFERENCE_TABLES = {"credit_products"}
 
 
@@ -35,7 +33,6 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
 
 @pytest.fixture(scope="session")
 def database() -> None:
-    """Пересоздаёт тестовую БД и накатывает миграции: один раз на прогон."""
     try:
         recreate_database()
     except OSError as e:
@@ -47,8 +44,6 @@ def database() -> None:
     command.upgrade(alembic_config(), "head")
 
 
-# NullPool и движок на каждый тест: у pytest-asyncio свой event loop на тест,
-# а соединения asyncpg привязаны к циклу, в котором открыты
 @pytest.fixture
 async def engine(database: None) -> AsyncIterator[AsyncEngine]:
     engine = create_test_engine()
@@ -84,8 +79,6 @@ async def redis() -> AsyncIterator[Redis]:
 
 @pytest.fixture
 async def clean_storage(engine: AsyncEngine, redis: Redis) -> None:
-    """Пустые таблицы и Redis; integration и api подключают её автоматически в своих conftest."""
-    # DELETE по таблицам в обратном порядке зависимостей заметно быстрее TRUNCATE ... CASCADE на пустых таблицах
     tables = [t.name for t in reversed(Base.metadata.sorted_tables) if t.name not in REFERENCE_TABLES]
     async with engine.begin() as conn:
         for table in tables:
@@ -95,7 +88,6 @@ async def clean_storage(engine: AsyncEngine, redis: Redis) -> None:
 
 @pytest.fixture
 async def user(db_session: AsyncSession) -> User:
-    """Активный пользователь в БД, пароль: tests.factories.DEFAULT_PASSWORD."""
     user = make_user()
     db_session.add(user)
     await db_session.commit()

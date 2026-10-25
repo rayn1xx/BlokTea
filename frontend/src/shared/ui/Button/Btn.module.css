@@ -1,0 +1,59 @@
+.btn {
+  font-weight: 500 !important;
+  border-radius: 10px !important;
+  white-space: nowrap;
+}
+
+.primary {
+  background: var(--a-red) !important;
+  color: #fff !important;
+  border: 0 !important;
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--a-red-hover) !important;
+}
+
+.primary:disabled {
+  background: #f7b5af !important;
+  color: #fff !important;
+  opacity: 1 !important;
+}
+
+.outlineRed {
+  background: #fff !important;
+  color: var(--a-red) !important;
+  box-shadow: inset 0 0 0 1.5px var(--a-red) !important;
+  border: 0 !important;
+}
+
+.outlineRed:hover:not(:disabled) {
+  background: var(--a-red-soft) !important;
+}
+
+.outline {
+  background: #fff !important;
+  color: var(--a-text) !important;
+  box-shadow: inset 0 0 0 1px #c9ccd1 !important;
+  border: 0 !important;
+}
+
+.outline:hover:not(:disabled) {
+  background: var(--a-bg-soft) !important;
+}
+
+.soft {
+  background: var(--a-bg-soft) !important;
+  color: var(--a-text) !important;
+  border: 0 !important;
+}
+
+.ghost {
+  background: transparent !important;
+  color: var(--a-text) !important;
+  border: 0 !important;
+}
+
+.ghost:hover:not(:disabled) {
+  background: var(--a-bg-soft) !important;
+}

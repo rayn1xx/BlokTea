@@ -17,9 +17,9 @@ import { keys } from '@/shared/api/queryKeys';
 import { ROLE_SHORT, SIGNING_DOCUMENT_LABELS } from '@/shared/i18n/ru';
 import { appNo, formatMoney, formatMonths, formatPercent } from '@/shared/lib/format';
 import type { Challenge, Money } from '@/shared/types/common';
-import { Avatar, Bar, Btn, Dialog, Metrics, PageHead, Panel, Pill, QueryGate, Stack, TextField, TextLink, kit } from '@/shared/ui';
+import { Avatar, Bar, Btn, Card, Dialog, Grow, Metrics, PageHead, Panel, Pill, QueryGate, Stack, TextField, TextLink } from '@/shared/ui';
 
-import g from '../signing.module.css';
+import g from './SigningScreen.module.css';
 
 export function SigningScreen() {
   const { id = '' } = useParams();
@@ -176,10 +176,7 @@ function SigningView({ app, state }: { app: ApplicationDetail; state: SigningSta
             )}
           </Panel>
         ) : state.can_current_user_sign ? (
-          <section className={kit.box}>
-            <h2 className={kit.boxTitle} style={{ marginBottom: 14 }}>
-              Ваша подпись
-            </h2>
+          <Card title='Ваша подпись'>
             <div className={g.signRow}>
               <div className={g.code}>
                 <TextField value={code} onChange={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))} placeholder='Код подтверждения' inputMode='numeric' error={!!error} />
@@ -189,7 +186,7 @@ function SigningView({ app, state }: { app: ApplicationDetail; state: SigningSta
               </Btn>
             </div>
             {error && <div className={g.error}>{error}</div>}
-          </section>
+          </Card>
         ) : (
           <Panel>
             {state.signers.some((s) => s.person.user_id === home.id && s.status === 'signed')
@@ -237,7 +234,7 @@ function SigningRulesDialog({ app, state, onClose }: { app: ApplicationDetail; s
         {state.signers.map((s) => (
           <div key={`${s.order}-${s.person.user_id}`} className={g.ruleCard}>
             <Avatar name={s.person.name} />
-            <div style={{ flex: 1 }}>
+            <Grow>
               <b>{SIGNING_DOCUMENT_LABELS[s.document]}</b>
               <div>{s.person.name}</div>
               <div className={g.muted}>
@@ -246,7 +243,7 @@ function SigningRulesDialog({ app, state, onClose }: { app: ApplicationDetail; s
               <div className={g.verified}>
                 <CheckmarkCircleMIcon /> Полномочия подтверждены
               </div>
-            </div>
+            </Grow>
             {s.status === 'signed' ? (
               <Pill tone='green' small icon={<CheckmarkCircleMIcon style={{ width: 14, height: 14 }} />}>
                 Подписано

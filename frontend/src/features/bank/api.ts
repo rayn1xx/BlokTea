@@ -1,4 +1,4 @@
-import type { Decision } from '@/features/applications/types';
+import type { CallNoteCreate, Decision } from '@/features/applications/types';
 import type { InfoRequest } from '@/features/info-requests/types';
 import { request } from '@/shared/api/client';
 import type { Paginated } from '@/shared/types/common';
@@ -18,6 +18,8 @@ export const bankApi = {
   get: (id: string) => request<BankApplicationDetail>(`/bank/applications/${id}`),
   aiSummary: (id: string) =>
     request<BankApplicationDetail>(`/bank/applications/${id}/ai-summary`, { method: 'POST' }),
+  addCall: (id: string, body: CallNoteCreate) =>
+    request<BankApplicationDetail>(`/bank/applications/${id}/calls`, { method: 'POST', body }),
   rerunChecks: (id: string) =>
     request<BankApplicationDetail>(`/bank/applications/${id}/rerun-checks`, { method: 'POST' }),
   counterOfferOptions: (id: string) =>

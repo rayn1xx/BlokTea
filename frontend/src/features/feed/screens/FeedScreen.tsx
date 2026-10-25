@@ -13,7 +13,7 @@ import { useCurrentHome } from '@/features/profile/components/AppShell/AppShell'
 import { keys } from '@/shared/api/queryKeys';
 import { Accordion, Btn, EmptyState, InfoStrip, PageHead, Pill, QueryGate, Tabs, TextLink } from '@/shared/ui';
 
-import f from '../feed.module.css';
+import f from './FeedScreen.module.css';
 
 type TabId = 'all' | 'program' | 'tip' | 'application_event';
 

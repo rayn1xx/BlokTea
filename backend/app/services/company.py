@@ -1,5 +1,3 @@
-"""Компания и данные из ЛК (К.4), готовность (3.4)."""
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import validation

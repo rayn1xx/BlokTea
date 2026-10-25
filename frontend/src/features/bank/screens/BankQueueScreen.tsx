@@ -8,7 +8,7 @@ import { useBankQueue } from '@/features/bank/hooks';
 import type { BankQueueParams } from '@/features/bank/types';
 import { errorText, queryClient } from '@/shared/api/query';
 import { keys } from '@/shared/api/queryKeys';
-import { Card, Chips, EmptyState, ErrorState, LoadingState, Note, PageHeader, Row, Stack, uiStyles as s } from '@/shared/ui';
+import { Card, Chips, EmptyState, ErrorState, LoadingState, Note, PageHead, Row, Stack, Table } from '@/shared/ui';
 
 type Filter = 'all' | 'mine' | 'risk' | 'stop';
 
@@ -45,7 +45,7 @@ export function BankQueueScreen() {
 
   return (
     <div>
-      <PageHeader title='Очередь заявок' subtitle='Заявки после автопроверок. Авторешённые показаны внизу без действий' />
+      <PageHead title='Очередь заявок' subtitle='Заявки после автопроверок. Авторешённые показаны внизу без действий' />
       <Stack gap={16}>
         <Row justify='space-between' gap={12}>
           <Chips options={FILTERS} value={filter} onChange={setFilter} />
@@ -70,15 +70,14 @@ export function BankQueueScreen() {
             <EmptyState title='Очередь пуста' text='Новые заявки появятся здесь после автопроверок' />
           </Card>
         ) : (
-          <Card style={{ padding: '8px 16px' }}>
-            <div className={s.tableScroll}>
-              <table className={`${s.table} ${s.tableClickable}`}>
+          <Card tight>
+            <Table variant='plain' clickable>
                 <thead>
                   <tr>
                     <th>№</th>
                     <th>Компания</th>
                     <th>Продукт и сумма</th>
-                    <th className={s.right}>Балл</th>
+                    <th data-align='right'>Балл</th>
                     <th>Автопроверки</th>
                     <th>В очереди</th>
                     <th>Ответственный</th>
@@ -90,8 +89,7 @@ export function BankQueueScreen() {
                     <QueueRow key={item.id} item={item} onOpen={() => navigate(`/bank/applications/${item.id}`)} onTake={() => take.mutate(item.id)} taking={take.isPending && take.variables === item.id} />
                   ))}
                 </tbody>
-              </table>
-            </div>
+            </Table>
           </Card>
         )}
       </Stack>

@@ -1,10 +1,3 @@
-"""ИИ-задачи И1-И8 (раздел 8 ТЗ) поверх шаблонов-заглушек.
-
-Каждая функция получает уже готовый ответ на шаблонах и подменяет в нём только тексты, если модель
-ответила валидно. Числа, баллы и решения считает код и модель их не меняет. При любом сбое ответ
-остаётся на шаблонах (text_source='template').
-"""
-
 import base64
 import io
 import logging
@@ -26,16 +19,11 @@ from app.integrations.llm import ANALYST_PROMPT, EXTRACT_PROMPT, SYSTEM_PROMPT
 log = logging.getLogger(__name__)
 
 LLM = "llm"
-# слова с отказом и обвинительным тоном в текстах клиенту (8.5)
 FORBIDDEN_WORDS = ("отказ", "отклон")
 
 
 def rubles(kopecks: int) -> int:
-    """Деньги в API в копейках, модели передаём рубли: она пишет суммы так, как их читает клиент."""
     return round(kopecks / 100)
-
-
-# И4. Причины рекомендации
 
 
 class I4Reason(BaseModel):
@@ -93,9 +81,6 @@ async def recommendation_texts(result: dict, threshold: float, target: float) ->
     return result
 
 
-# И5 и И8. Объяснение решения
-
-
 class I5Output(BaseModel):
     explanation_text: str = Field(max_length=300)
     improve_tips: list[str] = Field(max_length=3)
@@ -146,9 +131,6 @@ async def decision_texts(payload: dict) -> dict:
     return payload
 
 
-# И6. Советы по готовности
-
-
 class I6Tip(BaseModel):
     code: str
     how_to_improve: str = Field(max_length=200)
@@ -186,9 +168,6 @@ async def readiness_texts(full: dict) -> dict:
     return full
 
 
-# И7. Резюме для аналитика
-
-
 class I7Output(BaseModel):
     text: str = Field(max_length=600)
     risks: list[str] = Field(max_length=4)
@@ -213,13 +192,10 @@ async def analyst_summary(data: dict, template: dict) -> dict:
     return template | answer.output.model_dump() | {"text_source": LLM}
 
 
-# И1-И3. Анализ документа
-
 MIN_TYPE_CONFIDENCE = 0.6
 MIN_FIELD_CONFIDENCE = 0.5
 MAX_TEXT_CHARS = 8000
 MAX_PDF_PAGES = 5
-# паспорт содержит персональные данные: в модель не отправляем (8.1 п.6)
 NO_LLM_TYPES = {"passport"}
 
 FieldType = Literal["string", "date", "money", "inn"]
@@ -288,7 +264,6 @@ def pdf_text(content: bytes) -> str:
 
 
 def ocr_text(content: bytes) -> str:
-    """Запасной путь И2: Tesseract с русским языком, если установлен."""
     if not shutil.which("tesseract"):
         return ""
     try:
@@ -328,7 +303,6 @@ def digits(value: str | None) -> str:
 def code_checks(
     fields: dict[str, str], doc_type: str, requested_types: list[str] | None, company_inn: str, today: date
 ) -> list[dict]:
-    """Проверки делает код (И3): ИНН, свежесть, период, тип. expected/actual уходят в модель для формулировки."""
     checks = []
     if requested_types:
         checks.append(
@@ -387,7 +361,6 @@ def template_issue(check: dict, max_age: int | None) -> str:
 
 
 async def issue_texts(checks: list[dict], document_title: str, max_age: int | None) -> tuple[dict[str, str], bool]:
-    """Тексты замечаний по непройденным проверкам: от модели (И3) или из шаблонов."""
     failed = [c for c in checks if c["passed"] is False]
     result = {c["code"]: template_issue(c, max_age) for c in failed}
     if not failed:
@@ -410,7 +383,6 @@ async def issue_texts(checks: list[dict], document_title: str, max_age: int | No
 
 
 async def extract(content: bytes, fmt: str) -> tuple[llm.LlmResult | None, str | None]:
-    """И1 по тексту или И2 по изображению. None: прочитать документ нечем, нужна ручная проверка."""
     data: dict = {"allowed_types": allowed_types()}
     if fmt in ("png", "jpg") and settings.llm_model_vision:
         answer = await llm.client.complete(
@@ -447,7 +419,6 @@ async def analyze_document(
     today: date,
     analyzed_at: str,
 ) -> dict | None:
-    """DocumentAnalysis из К.12 или None, если модель недоступна или не справилась: тогда заглушка."""
     if not settings.llm_enabled or doc_type in NO_LLM_TYPES:
         return None
     answer, _ = await extract(content, fmt)
@@ -456,7 +427,6 @@ async def analyze_document(
     out: I1Output = answer.output
     known_types = {t["code"] for t in allowed_types()}
     detected = out.detected_type if out.detected_type in known_types else None
-    # тип пользователя главнее; без него берём уверенно определённый
     effective_type = doc_type
     if doc_type == "other" and detected and out.confidence >= MIN_TYPE_CONFIDENCE:
         effective_type = detected
@@ -501,7 +471,6 @@ async def analyze_document(
         ],
         "issues": issues,
         "model": answer.model,
-        # поля извлекла модель; тексты замечаний от модели, только если И3 ответила валидно
         "text_source": LLM if issues_by_llm or not checks or all(c["passed"] for c in checks) else texts.TEMPLATE,
         "analyzed_at": analyzed_at,
     }

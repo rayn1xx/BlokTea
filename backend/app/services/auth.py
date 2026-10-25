@@ -16,7 +16,7 @@ from app.services.exceptions import (
 @dataclass(frozen=True)
 class IssuedTokens:
     access_token: str
-    expires_in: int  # секунды жизни access-токена
+    expires_in: int
     refresh_token: str
     refresh_expires_at: datetime
 
@@ -52,13 +52,11 @@ class AuthService:
         if not refresh_token:
             raise InvalidRefreshTokenError
 
-        # ротация: старый refresh-токен одноразовый, consume помечает его использованным
         result = await self._refresh_sessions.consume(self._tokens.hash_refresh_token(refresh_token))
 
         if result.status is ConsumeStatus.MISSING:
             raise InvalidRefreshTokenError
 
-        # повторное использование токена: вероятная кража: закрываем все сессии пользователя
         if result.status is ConsumeStatus.REUSED:
             await self._refresh_sessions.revoke_all_for_user(result.user_id)
             raise InvalidRefreshTokenError

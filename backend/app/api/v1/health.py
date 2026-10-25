@@ -20,7 +20,6 @@ async def llm_state() -> str:
             response = await client.get("/api/tags")
         if response.status_code != 200:
             return "down"
-        # Ollama жива, но текстовая модель ещё не скачана: все задачи уйдут в заглушки
         models = {m.get("name") for m in response.json().get("models", [])}
     except (httpx.HTTPError, ValueError):
         return "down"

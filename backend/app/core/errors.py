@@ -1,5 +1,3 @@
-"""Единый формат ошибок API: { "error": { "code", "message", "details" } } (раздел К.0 ТЗ)."""
-
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -57,7 +55,6 @@ def error_response(
 
 
 def _field_name(loc: tuple) -> str:
-    # ("body", "amount", "value") -> "amount.value"; первым идёт место параметра
     parts = [str(p) for p in loc[1:]] if len(loc) > 1 else [str(p) for p in loc]
     return ".".join(parts) or "body"
 
@@ -81,7 +78,6 @@ async def validation_error_handler(_: Request, exc: RequestValidationError) -> J
             query_error = True
         details.setdefault(_field_name(loc), err.get("msg", "Неверное значение"))
 
-    # неверные query-параметры по контракту дают 400 BAD_REQUEST
     if query_error:
         return error_response(400, "BAD_REQUEST", "Неверные параметры запроса", details)
     return error_response(422, "VALIDATION_ERROR", "Проверьте поля", details)

@@ -17,7 +17,7 @@ import { keys } from '@/shared/api/queryKeys';
 import { formatDayMonth, formatTime } from '@/shared/lib/format';
 import { EmptyState, ErrorState, IconCircle, SkeletonLines, Tabs, TextLink } from '@/shared/ui';
 
-import n from './NotificationsDrawer.module.css';
+import s from './NotificationsDrawer.module.css';
 
 function iconFor(item: Notification) {
   const t = item.title.toLowerCase();
@@ -68,7 +68,7 @@ export function NotificationsDrawer({ open, onClose }: { open: boolean; onClose:
     <SidePanel open={open} onClose={onClose} size={500} breakpoint={768}>
       <SidePanel.Header title='Уведомления' hasCloser />
       <SidePanel.Content>
-        <div className={n.top}>
+        <div className={s.top}>
           <Tabs
             items={[
               { id: 'all', label: 'Все' },
@@ -92,18 +92,18 @@ export function NotificationsDrawer({ open, onClose }: { open: boolean; onClose:
           <EmptyState title='Уведомлений нет' text='Здесь появятся решения банка, запросы и задачи' />
         ) : (
           groups.map((g) => (
-            <section key={g.title} className={n.group}>
-              <h3 className={n.groupTitle}>{g.title}</h3>
+            <section key={g.title} className={s.group}>
+              <h3 className={s.groupTitle}>{g.title}</h3>
               {g.items.map((item) => {
                 const Icon = iconFor(item);
                 return (
-                  <article key={item.id} className={`${n.item} ${item.read ? '' : n.unread}`}>
-                    {!item.read && <span className={n.dot} aria-label='Не прочитано' />}
-                    <IconCircle icon={Icon} style={{ background: '#fff' }} />
-                    <div className={n.body}>
-                      <div className={n.title}>{item.title}</div>
-                      <div className={n.text}>{item.text}</div>
-                      <div className={n.meta}>
+                  <article key={item.id} className={`${s.item} ${item.read ? '' : s.unread}`}>
+                    {!item.read && <span className={s.dot} aria-label='Не прочитано' />}
+                    <IconCircle icon={Icon} white />
+                    <div className={s.body}>
+                      <div className={s.title}>{item.title}</div>
+                      <div className={s.text}>{item.text}</div>
+                      <div className={s.meta}>
                         <span>{g.title === 'Ранее' ? formatDayMonth(item.created_at) : formatTime(item.created_at)}</span>
                         {item.route && (
                           <TextLink tone='blue' arrow onClick={() => openItem(item)}>
@@ -118,7 +118,7 @@ export function NotificationsDrawer({ open, onClose }: { open: boolean; onClose:
             </section>
           ))
         )}
-        <p className={n.footer}>Здесь отображаются события, доступные вам по правам.</p>
+        <p className={s.footer}>Здесь отображаются события, доступные вам по правам.</p>
       </SidePanel.Content>
     </SidePanel>
   );

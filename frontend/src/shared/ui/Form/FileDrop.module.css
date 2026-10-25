@@ -1,0 +1,33 @@
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 16px;
+  border: 2px dashed var(--a-control-border);
+  border-radius: 16px;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.dropzone:hover,
+.active {
+  border-color: var(--a-blue);
+  background: var(--a-blue-soft);
+}
+
+.disabled,
+.disabled:hover {
+  border-color: var(--a-control-border);
+  background: none;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.icon {
+  color: var(--a-text-3);
+}

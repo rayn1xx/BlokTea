@@ -36,7 +36,6 @@ async def test_consume_once_then_reused(repo: RefreshSessionRepository, redis: R
 
     assert (first.status, first.user_id) == (ConsumeStatus.OK, user_id)
     assert (second.status, second.user_id) == (ConsumeStatus.REUSED, user_id)
-    # использованный токен остаётся до конца TTL: чтобы распознать повторное использование
     assert await redis.ttl(SESSION_KEY.format("hash-1")) > 0
 
 

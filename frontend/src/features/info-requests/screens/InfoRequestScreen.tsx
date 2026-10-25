@@ -23,9 +23,9 @@ import { AssignDialog } from '@/features/team/components/AssignDialog';
 import { errorText, invalidateApplication } from '@/shared/api/query';
 import { keys } from '@/shared/api/queryKeys';
 import { appNo, formatFileSize, formatLongDate, formatMoney, formatMonths, formatShortDateTime } from '@/shared/lib/format';
-import { Btn, DashedArea, Dialog, FileDrop, IconCircle, PageHead, Pill, QueryGate, SkeletonLines, Stack, TextArea, TextLink, kit } from '@/shared/ui';
+import { Btn, Card, Cell, DashedArea, Dialog, FileDrop, Grow, IconCircle, PageHead, Pill, QueryGate, Row, SkeletonLines, Stack, Text, TextArea, TextLink } from '@/shared/ui';
 
-import r from '../info.module.css';
+import r from './InfoRequestScreen.module.css';
 
 const LK_KIND: Record<string, FromLkRequest['kind']> = {
   bank_statement: 'bank_statement',
@@ -159,23 +159,21 @@ function RequestView({ app, request }: { app: ApplicationDetail; request: InfoRe
             ) : (
               <Stack gap={10}>
                 {loaded.map((d) => (
-                  <section key={d.id} className={kit.box} style={{ padding: 16 }}>
-                    <div className={r.file}>
-                      <PdfIcon name={d.file_name} />
-                      <div style={{ flex: 1 }}>
-                        <b>{d.file_name}</b>
-                        <div className={r.muted}>
-                          {formatFileSize(d.size_bytes)} · {d.origin === 'alfa_lk' ? 'из Альфа-Бизнеса' : 'загружен сейчас'}
-                        </div>
-                      </div>
-                      <TextLink tone='muted' onClick={() => setDocIds(docIds.filter((x) => x !== d.id))}>
-                        Убрать
-                      </TextLink>
-                    </div>
-                    <div style={{ marginTop: 12 }}>
+                  <Card key={d.id} compact>
+                    <Stack gap={12}>
+                      <Row justify='space-between' wrap={false}>
+                        <Cell
+                        leading={<PdfIcon name={d.file_name} />}
+                        title={d.file_name}
+                        sub={<>{formatFileSize(d.size_bytes)} · {d.origin === 'alfa_lk' ? 'из Альфа-Бизнеса' : 'загружен сейчас'}</>}
+                        />
+                        <TextLink tone='muted' onClick={() => setDocIds(docIds.filter((x) => x !== d.id))}>
+                          Убрать
+                        </TextLink>
+                      </Row>
                       <DocumentAnalysisView doc={d} />
-                    </div>
-                  </section>
+                    </Stack>
+                  </Card>
                 ))}
               </Stack>
             )}
@@ -203,7 +201,7 @@ function RequestView({ app, request }: { app: ApplicationDetail; request: InfoRe
                 </div>
               )}
             </div>
-            {error && <div style={{ color: 'var(--a-red)' }}>{error}</div>}
+            {error && <Text color='negative' tag='div'>{error}</Text>}
           </>
         )}
 
@@ -239,11 +237,11 @@ function RequestView({ app, request }: { app: ApplicationDetail; request: InfoRe
           <Stack gap={8}>
             {request.lk_available && (
               <div className={r.pick} style={{ background: 'var(--a-green-soft)' }}>
-                <IconCircle icon={DocumentLinesMIcon} style={{ background: '#fff' }} />
-                <div style={{ flex: 1 }}>
+                <IconCircle icon={DocumentLinesMIcon} white />
+                <Grow>
                   <b>Сформировать из Альфа-Бизнеса</b>
                   <div className={r.muted}>Возьмём данные вашего счёта, загружать ничего не нужно</div>
-                </div>
+                </Grow>
                 <Btn size='m' loading={fromLk.isPending} onClick={() => fromLk.mutate()}>
                   Сформировать
                 </Btn>
@@ -252,12 +250,12 @@ function RequestView({ app, request }: { app: ApplicationDetail; request: InfoRe
             {pickable.map((d) => (
               <div key={d.id} className={r.pick}>
                 <PdfIcon name={d.file_name} />
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <Grow>
                   <b>{d.title}</b>
                   <div className={r.muted}>
                     {d.file_name} · {formatShortDateTime(d.uploaded_at)}
                   </div>
-                </div>
+                </Grow>
                 <Btn
                   variant='outline'
                   size='m'

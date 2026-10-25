@@ -1,5 +1,3 @@
-"""Данные компании из моков и кабинета: финансы (3.1), факты для скоринга и готовности, профиль (К.4)."""
-
 from collections import defaultdict
 from datetime import date, timedelta
 
@@ -20,7 +18,6 @@ STALE_TEXT = "Бухгалтерской отчётности за 2025 год �
 
 
 def effective_document_status(doc: Document, day: date) -> tuple[str, str | None]:
-    """Статус документа с учётом срока действия и max_age_days типа."""
     if doc.status in ("rejected", "analyzing"):
         return doc.status, doc.status_reason
     doc_type = DOCUMENT_TYPES_BY_CODE.get(doc.document_type, {})
@@ -93,7 +90,6 @@ class CompanyData:
         return any(d.document_type == doc_type and document_valid(d, day) for d in await self.documents())
 
     async def statements_needed(self) -> bool:
-        """Отчётность за 2025 ситуативна: для ИП не нужна при Альфа-Бухгалтерии."""
         if self.company.legal_form.value == "IP":
             accounting = await optional(self.external.accounting(self.inn))
             if accounting and accounting.get("alfa_accounting"):
@@ -110,7 +106,6 @@ class CompanyData:
             situational.append(statements)
         return required, situational
 
-    # финансы
 
     async def months(self) -> tuple[date, date, list[MonthFlow]]:
         start, end = last_full_months(today())
@@ -119,7 +114,6 @@ class CompanyData:
         outflow: dict[str, int] = defaultdict(int)
         for tx in transactions:
             month = tx["date"][:7]
-            # без переводов между своими счетами, поступлений кредитов и платежей по кредитам
             if tx["category"] == "inflow":
                 inflow[month] += tx["amount"]["value"]
             elif tx["category"] == "outflow_operating":
@@ -133,7 +127,6 @@ class CompanyData:
         return start, end, result
 
     async def debts(self) -> tuple[list[dict], bool]:
-        """Кредиты Альфы (ЛК) + кредиты в других банках (БКИ) + добавленные клиентом. Второе значение: БКИ ответило."""
         items = []
         for loan in await self.external.loans(self.inn):
             items.append(
@@ -160,14 +153,12 @@ class CompanyData:
             )
         profile = await self.profile()
         for debt in (profile.client_input or {}).get("external_debts", []):
-            # кредит, добавленный клиентом, учитываем, только если его нет в БКИ
             if debt["lender"].lower() in bki_lenders:
                 continue
             items.append({**debt, "source": "client", "overdue": False})
         return items, bki is not None
 
     async def finance_summary(self) -> dict:
-        """FinanceSummary из К.4. Без операций из Альфа-Бизнеса считать нечего: 503."""
         try:
             start, end, months = await self.months()
             debts, _ = await self.debts()
@@ -216,7 +207,6 @@ class CompanyData:
         }
 
     async def facts(self) -> tuple[CompanyFacts, dict]:
-        """Факты для скоринга и готовности и признаки доступности источников."""
         c = self.company
         registry = await optional(self.external.registry(self.inn))
         bki = await optional(self.external.bki(self.inn))
@@ -276,7 +266,6 @@ class CompanyData:
         return facts, availability
 
     async def company_profile(self, available_actions: list[str]) -> dict:
-        """CompanyProfile из К.4."""
         c = self.company
         profile = await self.profile()
         overrides = await self.overrides()
@@ -359,7 +348,6 @@ class CompanyData:
 
 
 async def company_view(session: AsyncSession, c: Company) -> dict:
-    """Company из К.3."""
     from app.models import Member, User
 
     director = None

@@ -1,0 +1,242 @@
+.recCard {
+  padding: 16px 18px 18px;
+  border-radius: 12px;
+  background: var(--a-bg-soft);
+}
+
+.recNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.arrow {
+  display: inline-flex;
+  padding: 4px;
+  border: 0;
+  background: none;
+  color: var(--a-red);
+  cursor: pointer;
+}
+
+.arrow:disabled {
+  color: #c9ccd1;
+  cursor: default;
+}
+
+.arrow svg {
+  width: 24px;
+  height: 24px;
+}
+
+.recLabel {
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--a-red);
+}
+
+.recTitle {
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 700;
+}
+
+.recMain {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  margin: 16px 0 6px;
+}
+
+.recAmount {
+  padding-right: 18px;
+  border-right: 1px solid #d5d8dc;
+  font-size: 28px;
+  line-height: 34px;
+  font-weight: 700;
+}
+
+.recTerm {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.altReason {
+  font-size: 14px;
+  color: var(--a-green);
+}
+
+.expYellow,
+.expWhite {
+  border-radius: 12px;
+}
+
+.expYellow {
+  background: var(--a-yellow-soft);
+  border: 1px solid var(--a-yellow-border);
+}
+
+.expWhite {
+  border: 1px solid var(--a-border);
+}
+
+.expHead {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.expIcon,
+.expIconYellow {
+  display: inline-flex;
+  color: var(--a-text-2);
+}
+
+.expIconYellow {
+  color: var(--a-yellow);
+}
+
+.expIcon svg,
+.expIconYellow svg {
+  width: 22px;
+  height: 22px;
+}
+
+.expMore {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--a-red);
+}
+
+.expBody {
+  padding: 0 14px 14px 48px;
+  font-size: 14px;
+  line-height: 19px;
+}
+
+.whyRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--a-red-soft);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.whyIcon {
+  width: 22px;
+  height: 22px;
+  color: var(--a-red);
+}
+
+.whyChevron {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: var(--a-text-2);
+}
+
+.pinkBox {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--a-red-soft);
+}
+
+.reasons {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.reasons li {
+  display: flex;
+  gap: 14px;
+  font-size: 15px;
+}
+
+.reasonNum {
+  flex-shrink: 0;
+  width: 24px;
+  font-weight: 700;
+  color: var(--a-red);
+}
+
+.final {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--a-green);
+}
+
+.softButton {
+  width: 100%;
+  padding: 14px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--a-red-soft);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pathCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 19px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pathCard b {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+}
+
+.pathIcon {
+  width: 20px;
+  height: 20px;
+}
+
+.pathPink {
+  background: var(--a-red-soft);
+}
+
+.pathBlue {
+  background: var(--a-blue-soft);
+}
+
+.pathBlue b {
+  color: #2b3f6c;
+}

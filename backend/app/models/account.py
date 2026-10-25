@@ -8,7 +8,6 @@ from app.db.base import Base, TimestampMixin, pg_enum
 
 
 class AccountOwnerType(StrEnum):
-    # порядок значит: в PG enum сортируется по объявлению: счета компании идут раньше личных
     COMPANY = "company"
     USER = "user"
 
@@ -23,7 +22,6 @@ class AccountType(StrEnum):
 class Account(TimestampMixin, Base):
     __tablename__ = "accounts"
     __table_args__ = (
-        # владелец ровно один, и он совпадает с owner_type
         CheckConstraint(
             "(owner_type = 'company' AND company_id IS NOT NULL AND user_id IS NULL)"
             " OR (owner_type = 'user' AND user_id IS NOT NULL AND company_id IS NULL)",
@@ -39,8 +37,7 @@ class Account(TimestampMixin, Base):
     )
     user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     type: Mapped[AccountType] = mapped_column(pg_enum(AccountType, "account_type"))
-    currency: Mapped[str] = mapped_column(String(3))  # ISO 4217
+    currency: Mapped[str] = mapped_column(String(3))
     name: Mapped[str | None] = mapped_column(String(255))
     is_primary: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
-    # в минимальных единицах валюты (копейках), как Money.value в заявках
     current_money: Mapped[int] = mapped_column(BigInteger, default=0, server_default="0")

@@ -36,7 +36,6 @@ def models_vs_database_diff() -> list:
 
 
 def test_single_head() -> None:
-    # две головы: значит, две ветки миграций не слили
     assert len(ScriptDirectory.from_config(alembic_config()).get_heads()) == 1
 
 
@@ -70,5 +69,4 @@ def test_downgrade_to_base_and_upgrade_back(database: None) -> None:
 
 
 def test_models_match_migrations(database: None) -> None:
-    # непустой diff: модель поменяли, а миграцию не сгенерировали
     assert models_vs_database_diff() == []

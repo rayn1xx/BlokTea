@@ -1,12 +1,10 @@
-"""Факты о компании, посчитанные кодом из моков и данных кабинета. Вход для скоринга, готовности и подбора."""
-
 from dataclasses import dataclass, field
 from datetime import date
 
 
 @dataclass(frozen=True)
 class MonthFlow:
-    month: str  # "2026-01"
+    month: str
     inflow: int
     outflow: int
 
@@ -17,24 +15,20 @@ class CompanyFacts:
     okved_main: str
     registration_date: date
     today: date
-    registry_status: str | None  # None: реестр недоступен
+    registry_status: str | None
     msp_category: str | None = None
 
-    # финансы: None, если операции из Альфа-Бизнеса недоступны
     monthly_inflow_avg: int | None = None
     monthly_outflow_avg: int | None = None
     current_payments: int | None = None
     months: list[MonthFlow] = field(default_factory=list)
 
-    # БКИ: None, если бюро недоступно
     overdue_days_current: int | None = None
     max_overdue_days_12m: int | None = None
 
-    # ФНС «Прозрачный бизнес»
     tax_debt: int | None = None
     mass_address: bool = False
 
-    # документы компании для готовности
     missing_required_documents: list[str] = field(default_factory=list)
     missing_situational_documents: list[str] = field(default_factory=list)
 
@@ -64,7 +58,6 @@ class CompanyFacts:
 
 
 def low_months(months: list[MonthFlow], ratio: float = 0.8) -> list[int]:
-    """Номера месяцев (1-12) с поступлениями ниже 80% среднего: сезонный спад."""
     if not months:
         return []
     avg = sum(m.inflow for m in months) / len(months)

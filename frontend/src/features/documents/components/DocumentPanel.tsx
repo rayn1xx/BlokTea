@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Button } from '@alfalab/core-components/button';
 import { SidePanel } from '@alfalab/core-components/side-panel';
 
 import { documentsApi } from '@/features/documents/api';
@@ -12,7 +11,7 @@ import { errorText, queryClient } from '@/shared/api/query';
 import { keys } from '@/shared/api/queryKeys';
 import { DOCUMENT_STATUS } from '@/shared/i18n/ru';
 import { formatDateTime } from '@/shared/lib/format';
-import { Dialog, FileDrop, InfoRow, InfoRows, LoadingState, Note, Row, Stack, Text, ToneLabel, uiStyles as s } from '@/shared/ui';
+import { Btn, Dialog, FileDrop, FilePreview, InfoRow, InfoRows, LoadingState, Note, Row, Stack, Text, ToneLabel } from '@/shared/ui';
 
 import { DocumentAnalysisView } from './DocumentAnalysisView';
 
@@ -122,40 +121,38 @@ export function DocumentPanel({ id, onClose }: { id: string; onClose: () => void
 
             {preview ? (
               preview.text !== undefined ? (
-                <pre className={s.preview}>{preview.text}</pre>
-              ) : preview.type.startsWith('image/') ? (
-                <img src={preview.url} alt={d.title} className={s.previewImage} />
-              ) : preview.type === 'application/pdf' ? (
-                <iframe src={preview.url} title={d.title} className={s.previewFrame} />
+                <FilePreview text={preview.text} />
+              ) : preview.type.startsWith('image/') || preview.type === 'application/pdf' ? (
+                <FilePreview url={preview.url} type={preview.type} title={d.title} />
               ) : (
                 <Text secondary>Предпросмотр для этого формата недоступен, скачайте файл</Text>
               )
             ) : (
-              <Button view='secondary' size={40} onClick={loadPreview}>
+              <Btn variant='soft' onClick={loadPreview}>
                 Предпросмотр
-              </Button>
+              </Btn>
             )}
 
             {error && <Note tone='negative'>{error}</Note>}
 
             <Row gap={8}>
-              <Button view='secondary' size={40} onClick={download}>
+              <Btn variant='soft' onClick={download}>
                 Скачать
-              </Button>
+              </Btn>
               {canUpload && (
                 <>
-                  <Button view='secondary' size={40} onClick={() => setReplaceOpen(true)}>
+                  <Btn variant='soft' onClick={() => setReplaceOpen(true)}>
                     Заменить
-                  </Button>
-                  <Button view='secondary' size={40} onClick={() => analyze.mutate()} loading={analyze.isPending} disabled={d.origin === 'alfa_lk'}>
+                  </Btn>
+                  <Btn variant='soft' onClick={() => analyze.mutate()} loading={analyze.isPending} disabled={d.origin === 'alfa_lk'}>
                     Проверить снова
-                  </Button>
+                  </Btn>
                 </>
               )}
               {canDelete && (
-                <Button view='transparent' size={40} onClick={() => setConfirmDelete(true)}>
+                <Btn variant='ghost' onClick={() => setConfirmDelete(true)}>
                   Удалить
-                </Button>
+                </Btn>
               )}
             </Row>
           </Stack>
@@ -172,12 +169,12 @@ export function DocumentPanel({ id, onClose }: { id: string; onClose: () => void
         title='Удалить документ?'
         footer={
           <>
-            <Button view='primary' size={48} onClick={() => remove.mutate()} loading={remove.isPending}>
+            <Btn size='l' onClick={() => remove.mutate()} loading={remove.isPending}>
               Удалить
-            </Button>
-            <Button view='secondary' size={48} onClick={() => setConfirmDelete(false)}>
+            </Btn>
+            <Btn variant='soft' size='l' onClick={() => setConfirmDelete(false)}>
               Отмена
-            </Button>
+            </Btn>
           </>
         }
       >

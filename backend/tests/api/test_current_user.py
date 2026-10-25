@@ -1,5 +1,3 @@
-"""get_current_user проверяется на тестовом приложении: защищённых роутов в API пока нет."""
-
 import uuid
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta

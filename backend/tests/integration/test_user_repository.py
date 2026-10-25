@@ -21,7 +21,6 @@ async def test_add_and_get_by_id(
     user = await repo.add(make_user(login="a@test.local", middle_name="Петрович"))
     await db_session.commit()
 
-    # читаем через новую сессию: иначе вернётся объект из identity map, а не из БД
     async with session_factory() as other:
         loaded = await UserRepository(other).get_by_id(user.id)
 

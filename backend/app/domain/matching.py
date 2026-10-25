@@ -1,5 +1,3 @@
-"""Подбор продукта и рекомендация (раздел 3.2 ТЗ). Детерминированный перебор, LLM только формулирует тексты."""
-
 from dataclasses import dataclass
 from typing import Any
 
@@ -18,7 +16,6 @@ from app.domain.finance import (
 )
 
 AMOUNT_STEP = rub(100_000)
-# лимит овердрафта: 45% средних поступлений, вниз до 100 000 ₽ (допущение команды)
 OVERDRAFT_INFLOW_SHARE = 0.45
 
 
@@ -72,7 +69,6 @@ def eligible(
 
 
 def priority(p: dict, need: dict) -> int:
-    """Маршрутизация по ответам: меньше значит выше в списке при равенстве суммы."""
     code = p["code"]
     if need.get("need_type") == "recurring" or need.get("disbursement") == "tranches":
         return 0 if code in ("overdraft", "credit_line") else 1
@@ -99,7 +95,6 @@ def option_load(o: Option, facts: CompanyFacts) -> float:
 def best_fit(
     p: dict, amount: int, term: int, facts: CompanyFacts, max_load: float, extra_terms: int = 1
 ) -> Option | None:
-    """Максимальная сумма с нагрузкой ≤ max_load на сроках {запрошенный, +12, ...}; при равенстве короче срок."""
     if p["code"] == "overdraft":
         limit = min(overdraft_limit(facts.monthly_inflow_avg or 0, p), amount)
         if limit < p["amount_min"]:
@@ -129,7 +124,6 @@ def requested_option(p: dict, amount: int, term: int, facts: CompanyFacts) -> Op
 
 
 def readiness_ok(readiness_items: list[dict]) -> bool:
-    # нагрузка оценивается по каждому варианту отдельно, документы по ТЗ не учитываются
     return all(i["status"] == "ok" for i in readiness_items if i["code"] not in ("documents", "debt_load"))
 
 
@@ -196,7 +190,6 @@ def candidates(need: dict, facts: CompanyFacts) -> list[dict]:
     ]
     if strict:
         return strict
-    # ничего не подошло по ответам: смотрим всё, что доступно компании по форме, возрасту и залогу
     relaxed = [p for p in PRODUCTS if eligible(p, **common)]
     if not relaxed:
         raise NoProductsError
@@ -221,7 +214,6 @@ def pick_primary(options: list[Option], need: dict, extra: dict) -> Option:
 def recommend(
     need: dict, extra: dict, facts: CompanyFacts, t: Thresholds, readiness_items: list[dict], stale_text: str | None
 ) -> dict:
-    """RecommendResponse из К.7 без session_id."""
     amount = need["amount"]["value"]
     term = need["term_months"]
     ready = readiness_ok(readiness_items)
@@ -231,7 +223,6 @@ def recommend(
     if fitted:
         primary_opt = pick_primary(fitted, need, extra)
     else:
-        # даже минимальная сумма выше целевой нагрузки: берём запрошенную на самом длинном сроке
         fallback = [requested_option(p, amount, p["term_max_months"], facts) for p in products]
         primary_opt = min(fallback, key=lambda o: (option_load(o, facts), priority(o.product, need)))
 
@@ -244,7 +235,6 @@ def recommend(
     alternatives: list[dict] = []
     p = primary_opt.product
 
-    # запрошенная сумма на продлённом сроке, если нагрузка не выше порога
     if p["code"] != "overdraft" and min(amount, p["amount_max"]) > primary_opt.amount:
         alt = Option(p, min(amount, p["amount_max"]), clamp_term(p, term + 12))
         alt_load = option_load(alt, facts)
@@ -263,7 +253,6 @@ def recommend(
                 )
             )
 
-    # овердрафт, если подходит компании и цели
     if p["code"] != "overdraft":
         od = next(x for x in PRODUCTS if x["code"] == "overdraft")
         if eligible(od, legal_form=facts.legal_form, age_months=facts.business_age_months) and (
@@ -285,7 +274,6 @@ def recommend(
                     )
                 )
 
-    # продукт с залогом, если клиент указал залог
     if need.get("collateral") not in (None, "none"):
         for cp in PRODUCTS:
             if cp["collateral"] != "required" or cp["code"] == p["code"]:
@@ -360,7 +348,6 @@ def counter_offer_options(
     t: Thresholds,
     score_for_load,
 ) -> list[dict]:
-    """Варианты контрпредложения (3.6): до 3 вариантов с нагрузкой ≤ target и баллом ≥ approve_min."""
     products = [x for x in PRODUCTS if x["code"] == product_code]
     products += [
         x

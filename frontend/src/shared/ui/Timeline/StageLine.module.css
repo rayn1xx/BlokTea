@@ -1,0 +1,117 @@
+.timeline {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.step::before {
+  content: '';
+  position: absolute;
+  top: 15px;
+  left: -50%;
+  right: 50%;
+  height: 2px;
+  background: var(--a-control-border);
+}
+
+.step:first-child::before {
+  display: none;
+}
+
+.done::before {
+  background: var(--a-green);
+}
+
+.current::before {
+  background: var(--a-red);
+}
+
+.marker {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 2px solid #c9ccd1;
+  border-radius: 50%;
+  background: var(--a-bg);
+  color: #fff;
+}
+
+.done .marker {
+  border: 0;
+  background: var(--a-green);
+}
+
+.done .marker svg {
+  width: 18px;
+  height: 18px;
+}
+
+.current .marker {
+  border: 2px solid var(--a-red);
+}
+
+.current .marker::after {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--a-red);
+}
+
+.negative .marker {
+  border: 0;
+  background: var(--a-red);
+}
+
+.title {
+  margin-top: 10px;
+  font-size: 15px;
+  line-height: 20px;
+}
+
+.current .title {
+  font-weight: 600;
+}
+
+.time {
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 17px;
+  color: var(--a-text-2);
+}
+
+@media (max-width: 767px) {
+  .timeline {
+    grid-auto-flow: row;
+    gap: 14px;
+  }
+
+  .step {
+    flex-direction: row;
+    gap: 12px;
+    text-align: left;
+  }
+
+  .step::before {
+    display: none;
+  }
+
+  .title {
+    margin-top: 0;
+  }
+}

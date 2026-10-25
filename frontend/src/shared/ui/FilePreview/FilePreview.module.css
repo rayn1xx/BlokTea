@@ -1,0 +1,26 @@
+.text {
+  width: 100%;
+  min-height: 300px;
+  max-height: 60vh;
+  margin: 0;
+  padding: 20px;
+  overflow: auto;
+  border-radius: var(--a-radius);
+  background: var(--a-bg-soft);
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.frame {
+  width: 100%;
+  height: 60vh;
+  border: 0;
+  border-radius: var(--a-radius);
+}
+
+.image {
+  max-width: 100%;
+  border-radius: var(--a-radius);
+}

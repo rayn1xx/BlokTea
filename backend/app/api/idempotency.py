@@ -1,5 +1,3 @@
-"""Idempotency-Key для POST, меняющих статус (К.0): повтор с тем же ключом возвращает сохранённый ответ."""
-
 import hashlib
 import json
 
@@ -19,7 +17,6 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
         self._fastapi_app = fastapi_app
 
     def redis(self):
-        # в тестах Redis подменяется через dependency_overrides: берём тот же
         return self._fastapi_app.dependency_overrides.get(get_redis, get_redis)()
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:

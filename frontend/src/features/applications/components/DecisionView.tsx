@@ -12,9 +12,9 @@ import { errorText, invalidateApplication } from '@/shared/api/query';
 import { ERRORS, TEXTS } from '@/shared/i18n/ru';
 import { appNo, formatLongDate, formatMoney, formatMonths, formatPercent } from '@/shared/lib/format';
 import type { Money } from '@/shared/types/common';
-import { AiBadge, Btn, Dialog, Metrics, PageHead, Pill, Stack, TextLink } from '@/shared/ui';
+import { AiBadge, Btn, Dialog, Grid, Metrics, PageHead, Pill, Stack, TextLink } from '@/shared/ui';
 
-import d from '../decision.module.css';
+import d from './DecisionView.module.css';
 
 export function DecisionView({ app }: { app: ApplicationDetail }) {
   const decision = app.decision!;
@@ -192,14 +192,14 @@ function CounterOffer({ app, decision }: { app: ApplicationDetail; decision: Dec
         <Dialog open onClose={() => setConfirmDecline(false)} title='Отказаться от предложения?'>
           <Stack gap={16}>
             <div>Заявка закроется. Мы сразу откроем подбор с вашими прошлыми ответами.</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Grid gap={12}>
               <Btn variant='outline' size='l' block onClick={() => setConfirmDecline(false)}>
                 Вернуться
               </Btn>
               <Btn size='l' block loading={decline.isPending} onClick={() => decline.mutate()}>
                 Отказаться
               </Btn>
-            </div>
+            </Grid>
           </Stack>
         </Dialog>
       )}
