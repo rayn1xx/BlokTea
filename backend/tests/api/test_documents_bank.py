@@ -136,6 +136,8 @@ class TestBank:
 
         assert 0 < len(options) <= 3
         assert all(o["load"]["load_percent"] <= 26.5 and o["score"] >= 70 for o in options)
+        # одинаковые сумма и срок у разных продуктов различаются названием и ставкой
+        assert all(o["product_name"] and o["rate_percent"] > 0 for o in options)
 
     async def test_preview_does_not_change_application(self, client: AsyncClient, demo: None) -> None:
         preview = (

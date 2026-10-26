@@ -417,7 +417,6 @@ async def analyze_document(
     requested_types: list[str] | None,
     company_inn: str,
     today: date,
-    analyzed_at: str,
 ) -> dict | None:
     if not settings.llm_enabled or doc_type in NO_LLM_TYPES:
         return None
@@ -472,7 +471,6 @@ async def analyze_document(
         "issues": issues,
         "model": answer.model,
         "text_source": LLM if issues_by_llm or not checks or all(c["passed"] for c in checks) else texts.TEMPLATE,
-        "analyzed_at": analyzed_at,
     }
 
 

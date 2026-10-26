@@ -375,8 +375,10 @@ def counter_offer_options(
             options.append(
                 {
                     "product_code": o.product["code"],
+                    "product_name": o.product["name"],
                     "amount": money(o.amount),
                     "term_months": o.term,
+                    "rate_percent": o.rate,
                     "monthly_payment": money(o.payment),
                     "load": load,
                     "score": total,

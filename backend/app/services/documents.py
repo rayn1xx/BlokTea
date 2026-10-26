@@ -119,7 +119,6 @@ async def run_analysis(session: AsyncSession, doc: Document) -> None:
             requested_types=requested,
             company_inn=company.inn,
             today=today(),
-            analyzed_at=iso(now()),
         )
     if analysis is None:
         status = "failed" if settings.llm_enabled and doc.document_type not in ai.NO_LLM_TYPES else "unavailable"
@@ -129,7 +128,8 @@ async def run_analysis(session: AsyncSession, doc: Document) -> None:
         if doc.document_type == "other" and detected and confidence >= ai.MIN_TYPE_CONFIDENCE:
             doc.document_type = detected
             doc.title = document_title(detected)
-        doc.analysis = analysis
+        # время окончания: на CPU анализ идёт минутами
+        doc.analysis = analysis | {"analyzed_at": iso(now())}
     if doc.status == "analyzing":
         doc.status = "uploaded"
 

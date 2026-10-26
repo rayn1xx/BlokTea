@@ -64,8 +64,10 @@ export type BankApplicationDetail = ApplicationDetail & {
 
 export type CounterOfferOption = {
   product_code: ProductCode;
+  product_name: string;
   amount: Money;
   term_months: number;
+  rate_percent: number;
   monthly_payment: Money;
   load: LoadCalc;
   score: number;
