@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.12.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -12,8 +12,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-rus \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+COPY requirements.txt requirements.lock ./
+RUN pip install -r requirements.txt -c requirements.lock
 
 COPY . .
 

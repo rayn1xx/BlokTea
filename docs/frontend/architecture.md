@@ -4,12 +4,11 @@
 
 ```
 frontend/src/
-  main.tsx                 точка входа: MSW для демо-учёток, QueryClient, роутер
+  main.tsx                 точка входа: QueryClient, роутер
   app/                     сборка приложения
     router.tsx             роуты (раздел 3 спецификации)
     access.ts              доступ по роли: can(home, 'apply' | 'manage_team' | …)
     session.ts             куда вести после входа
-    env.ts                 флаги USE_MOCKS, DEMO_MODE
   shared/                  общее, не знает ни о каком домене
     api/                   HTTP-клиент, токен, QueryClient, ключи кеша, /health
     types/common.ts        общие типы контрактов: Money, Sourced, роли, статусы
@@ -22,7 +21,6 @@ frontend/src/
     hooks.ts               хуки TanStack Query
     components/            компоненты домена
     screens/               экраны (S…, B…)
-  mocks/                   MSW: фикстуры, логика конвейера, обработчики
 ```
 
 ## Домены
@@ -30,7 +28,7 @@ frontend/src/
 | Домен | Ручки | Экраны |
 |---|---|---|
 | `auth` | `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/invite/accept` | S1, S2, S4 |
-| `profile` | `/home` | каркас кабинета, демо-панель, защита роутов по роли |
+| `profile` | `/home` | каркас кабинета, защита роутов по роли |
 | `company` | `/company/profile`, `/company/registry/confirm`, `/company/details`, `/onboarding/complete`, `/company/finance-summary`, `/company/readiness` | S3, готовность |
 | `team` | `/company/members/*`, `/company/signing-rules` | S21, S8, S7 (выбор сотрудника) |
 | `tasks` | `/tasks`, `/tasks/{id}/reassign` | блок задач на главной |

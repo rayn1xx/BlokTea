@@ -39,7 +39,7 @@ jobs:
           cache-dependency-path: backend/requirements*.txt
 
       - name: Install dependencies
-        run: pip install -r requirements-dev.txt
+        run: pip install -r requirements-dev.txt -c requirements.lock
 
       - name: Run unit tests
         run: pytest -m unit -ra
@@ -51,7 +51,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:16.10-alpine
         env:
           POSTGRES_USER: bloktea
           POSTGRES_PASSWORD: bloktea
@@ -65,7 +65,7 @@ jobs:
           --health-retries 10
 
       redis:
-        image: redis:7-alpine
+        image: redis:7.4.5-alpine
         ports:
           - 6379:6379
         options: >-
@@ -93,7 +93,7 @@ jobs:
           cache-dependency-path: backend/requirements*.txt
 
       - name: Install dependencies
-        run: pip install -r requirements-dev.txt
+        run: pip install -r requirements-dev.txt -c requirements.lock
 
       - name: Run integration, API and migration tests
         run: pytest -m "not unit" -ra

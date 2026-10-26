@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:16.10-alpine
     env_file:
       - path: .env
         required: false
@@ -19,7 +19,7 @@ services:
       retries: 10
 
   redis:
-    image: redis:7-alpine
+    image: redis:7.4.5-alpine
     # AOF: refresh-сессии переживают перезапуск контейнера
     command: ["redis-server", "--appendonly", "yes"]
     ports:

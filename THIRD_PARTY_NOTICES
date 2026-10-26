@@ -38,3 +38,38 @@ THIRD PARTY NOTICES
 FastAPI (MIT), Starlette (BSD-3-Clause), Pydantic (MIT), pydantic-settings (MIT), SQLAlchemy (MIT),
 asyncpg (Apache-2.0), Alembic (MIT), Uvicorn (BSD-3-Clause), PyJWT (MIT), argon2-cffi (MIT),
 redis-py (MIT), httpx (BSD-3-Clause), python-multipart (Apache-2.0), PyYAML (MIT), pypdf (BSD-3-Clause).
+
+Точные версии всех зависимостей бэкенда, включая транзитивные: backend/requirements.lock.
+Тесты: pytest (MIT), pytest-asyncio (Apache-2.0).
+
+Фронтенд
+========
+
+Точные версии: frontend/package-lock.json.
+
+- React, React DOM 18.3.1 (MIT)
+- React Router 6.28.0 (MIT)
+- TanStack Query 5.104.5 (MIT)
+- Core Design System Альфа-Банка: @alfalab/core-components 50.37.0, @alfalab/icons-glyph 2.293.0,
+  @alfalab/icons-logotype 2.37.0 (MIT, открытый репозиторий core-ds/core-components)
+- Сборка и тесты: Vite 5.4.10 (MIT), @vitejs/plugin-react (MIT), TypeScript 5.6.3 (Apache-2.0),
+  Vitest 2.1.9 (MIT), Testing Library (MIT), jsdom (MIT)
+
+Шрифты
+======
+
+- Alfa Interface Sans (frontend/src/assets/fonts): фирменный шрифт Альфа-Банка, используется только
+  в прототипе для кейса Альфа-Банка. Открытой лицензии нет; для использования вне кейса заменить
+  на открытый шрифт (например, Inter, SIL OFL 1.1)
+
+Инфраструктура (Docker-образы)
+==============================
+
+- python:3.12.11-slim (PSF License), node:22.18.0-alpine (MIT), nginx:1.27.2-alpine (BSD-2-Clause)
+- postgres:16.10-alpine (PostgreSQL License), redis:7.4.5-alpine (BSD-3-Clause)
+
+Данные
+======
+
+Сторонние датасеты не используются. Все демо-данные синтетические и создаются кодом: backend/app/seed.py
+(пользователи, компании, заявки, лента) и backend/mocks/data.py (ответы внешних систем).

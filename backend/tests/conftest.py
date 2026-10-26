@@ -3,6 +3,7 @@ import os
 os.environ["POSTGRES_DB"] = os.environ.get("TEST_POSTGRES_DB", "bloktea_test")
 os.environ["REDIS_DB"] = os.environ.get("TEST_REDIS_DB", "15")
 os.environ["JWT_SECRET"] = "test-secret"
+os.environ["LLM_ENABLED"] = "false"
 
 from collections.abc import AsyncIterator  # noqa: E402
 from pathlib import Path  # noqa: E402

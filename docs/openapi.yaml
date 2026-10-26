@@ -1256,6 +1256,63 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
           description: Unprocessable Entity
+  /api/v1/tasks/request-document:
+    post:
+      tags:
+      - tasks
+      summary: Request Document
+      operationId: request_document_api_v1_tasks_request_document_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentRequestBody'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - HTTPBearer: []
   /api/v1/products:
     get:
       tags:
@@ -4035,6 +4092,71 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
           description: Unprocessable Entity
+  /api/v1/bank/applications/{app_id}/calls:
+    post:
+      tags:
+      - bank
+      summary: Add Call
+      operationId: add_call_api_v1_bank_applications__app_id__calls_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: app_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: App Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallNoteCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BankApplicationDetail'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Conflict
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable Entity
   /api/v1/bank/applications/{app_id}:
     get:
       tags:
@@ -4911,6 +5033,12 @@ components:
             $ref: '#/components/schemas/InfoRequest'
           type: array
           title: Info Requests
+        calls:
+          items:
+            $ref: '#/components/schemas/CallNote'
+          type: array
+          title: Calls
+          default: []
         decision:
           anyOf:
           - $ref: '#/components/schemas/Decision'
@@ -5234,6 +5362,12 @@ components:
             $ref: '#/components/schemas/InfoRequest'
           type: array
           title: Info Requests
+        calls:
+          items:
+            $ref: '#/components/schemas/CallNote'
+          type: array
+          title: Calls
+          default: []
         decision:
           anyOf:
           - $ref: '#/components/schemas/Decision'
@@ -5411,8 +5545,6 @@ components:
       required:
       - type
       title: BankDecisionRequest
-      description: approve | counter_offer | request_info | reject; поля зависят от
-        type (К.14).
     BankQueueItem:
       properties:
         id:
@@ -5577,6 +5709,108 @@ components:
       required:
       - file
       title: Body_upload_api_v1_documents_post
+    CallNote:
+      properties:
+        id:
+          type: string
+          title: Id
+        stage:
+          type: string
+          enum:
+          - draft
+          - submitted
+          - in_review
+          - info_requested
+          - approved
+          - counter_offer
+          - rejected
+          - signing
+          - issued
+          - cancelled
+          title: Stage
+        stage_title:
+          type: string
+          title: Stage Title
+        called_at:
+          type: string
+          title: Called At
+        duration_minutes:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Duration Minutes
+        topic:
+          type: string
+          title: Topic
+        summary:
+          type: string
+          title: Summary
+        agreements:
+          items:
+            type: string
+          type: array
+          title: Agreements
+        next_step:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Step
+        next_step_due:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Step Due
+        author_name:
+          type: string
+          title: Author Name
+      type: object
+      required:
+      - id
+      - stage
+      - stage_title
+      - called_at
+      - duration_minutes
+      - topic
+      - summary
+      - agreements
+      - next_step
+      - next_step_due
+      - author_name
+      title: CallNote
+    CallNoteCreate:
+      properties:
+        topic:
+          type: string
+          title: Topic
+        summary:
+          type: string
+          title: Summary
+        agreements:
+          items:
+            type: string
+          type: array
+          title: Agreements
+          default: []
+        next_step:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Step
+        next_step_due:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Step Due
+        duration_minutes:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Duration Minutes
+      type: object
+      required:
+      - topic
+      - summary
+      title: CallNoteCreate
     Challenge:
       properties:
         challenge_id:
@@ -6297,6 +6531,29 @@ components:
       - expires_at
       - analysis
       title: DocumentRef
+    DocumentRequestBody:
+      properties:
+        member_id:
+          type: string
+          title: Member Id
+        document_type:
+          type: string
+          title: Document Type
+        application_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Application Id
+        comment:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Comment
+      type: object
+      required:
+      - member_id
+      - document_type
+      title: DocumentRequestBody
     DocumentType:
       properties:
         code:
@@ -7065,6 +7322,12 @@ components:
             $ref: '#/components/schemas/ScheduleRow'
           type: array
           title: Schedule
+        payments:
+          items:
+            $ref: '#/components/schemas/LoanPayment'
+          type: array
+          title: Payments
+          default: []
         source:
           type: string
           enum:
@@ -7086,6 +7349,24 @@ components:
       - schedule
       - source
       title: Loan
+    LoanPayment:
+      properties:
+        date:
+          type: string
+          title: Date
+        principal:
+          $ref: '#/components/schemas/Money'
+        interest:
+          $ref: '#/components/schemas/Money'
+        early:
+          $ref: '#/components/schemas/Money'
+      type: object
+      required:
+      - date
+      - principal
+      - interest
+      - early
+      title: LoanPayment
     LoginRequest:
       properties:
         login:
@@ -8943,6 +9224,7 @@ components:
           - send_application
           - approve_member
           - consent
+          - upload_document
           title: Type
         title:
           type: string

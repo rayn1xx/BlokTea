@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "BlokTea API",
-    "description": "Тесты авторизации. Запускать целиком через Collection Runner: запросы идут сценарием и передают токены друг другу через переменные коллекции.\n\nRefresh-токен отправляется явным заголовком Cookie (банка cookie Postman отключена), чтобы можно было проверить повторное использование старого токена.\n\nПеред запуском: docker compose up -d db redis backend && docker compose exec backend python -m app.seed",
+    "description": "Папки 1-8: авторизация, главная и список заявок. Папка 9: персональная лента. Папки 10-13: сквозные сценарии кредитного конвейера (клиент → банк → решение → подписание → выдача).\n\nЗапускать целиком через Collection Runner. Запросы передают токены и id через переменные коллекции. Коды подтверждения берутся из demo_code (DEMO_MODE=true).\n\nRefresh-токен отправляется явным заголовком Cookie (банка cookie Postman отключена), чтобы можно было проверить повторное использование старого токена.\n\nПеред запуском: docker compose up -d, затем make reset-demo (или docker compose exec backend python -m app.seed --reset). Папка 13 выдаёт кредит и меняет нагрузку компании, поэтому перед повторным прогоном базу нужно сбросить.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -11,19 +11,35 @@
     },
     {
       "key": "login",
-      "value": "owner@test.local"
+      "value": "petr.smirnov@test.local"
     },
     {
       "key": "password",
-      "value": "owner123"
+      "value": "alfa2026"
     },
     {
       "key": "login_norole",
-      "value": "norole@test.local"
+      "value": "no.role@test.local"
     },
     {
       "key": "password_norole",
-      "value": "norole123"
+      "value": "alfa2026"
+    },
+    {
+      "key": "demo_password",
+      "value": "alfa2026"
+    },
+    {
+      "key": "login_petrov",
+      "value": "sergey.petrov@test.local"
+    },
+    {
+      "key": "login_ip",
+      "value": "maria.orlova@test.local"
+    },
+    {
+      "key": "login_analyst",
+      "value": "analyst@test.local"
     },
     {
       "key": "access_ttl",
@@ -40,6 +56,54 @@
     {
       "key": "prev_refresh_token",
       "value": ""
+    },
+    {
+      "key": "token_owner",
+      "value": ""
+    },
+    {
+      "key": "token_petrov",
+      "value": ""
+    },
+    {
+      "key": "token_ip",
+      "value": ""
+    },
+    {
+      "key": "token_analyst",
+      "value": ""
+    },
+    {
+      "key": "session_id",
+      "value": ""
+    },
+    {
+      "key": "app_id",
+      "value": ""
+    },
+    {
+      "key": "challenge_id",
+      "value": ""
+    },
+    {
+      "key": "demo_code",
+      "value": ""
+    },
+    {
+      "key": "request_id",
+      "value": ""
+    },
+    {
+      "key": "document_id",
+      "value": ""
+    },
+    {
+      "key": "feed_ooo",
+      "value": ""
+    },
+    {
+      "key": "poll",
+      "value": "0"
     }
   ],
   "auth": {
@@ -302,7 +366,7 @@
             "url": "{{baseUrl}}/auth/login",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"login\": \"  OWNER@Test.Local \",\n  \"password\": \"{{password}}\"\n}",
+              "raw": "{\n  \"login\": \"  Petr.Smirnov@Test.Local \",\n  \"password\": \"{{password}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -978,53 +1042,18 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "",
+                  "pm.test('200', () => pm.response.to.have.status(200));",
                   "const body = pm.response.json();",
-                  "",
-                  "pm.test('User: поля по контракту', () => {",
-                  "  pm.expect(body).to.have.all.keys(",
-                  "    'id', 'first_name', 'middle_name', 'birth_date', 'role', 'company', 'accounts');",
+                  "pm.test('Поля по контракту Home', () => {",
+                  "  pm.expect(body).to.include.all.keys('id', 'first_name', 'last_name', 'role', 'permissions', 'home_profile', 'bank_role', 'company', 'accounts', 'onboarding', 'unread_notifications');",
                   "  pm.expect(body.role).to.eql('owner');",
+                  "  pm.expect(body.home_profile).to.eql('entrepreneur');",
                   "});",
-                  "",
-                  "pm.test('Company: поля по контракту', () => {",
-                  "  pm.expect(body.company).to.have.all.keys(",
-                  "    'id', 'legal_form', 'inn', 'ogrn', 'kpp', 'full_name', 'short_name', 'registration_date',",
-                  "    'okved_main', 'okved_additional', 'legal_address', 'registry_status', 'msp_category',",
-                  "    'employees_count', 'verification', 'created_at', 'updated_at');",
+                  "pm.test('Компания из ЕГРЮЛ', () => {",
+                  "  pm.expect(body.company.inn).to.match(/^\\d{10}$/);",
                   "  pm.expect(body.company.verification).to.have.all.keys('source', 'verified_at');",
-                  "  pm.expect(body.company.okved_additional).to.be.an('array');",
                   "});",
-                  "",
-                  "pm.test('Реквизиты соответствуют форме собственности', () => {",
-                  "  const c = body.company;",
-                  "  if (c.legal_form === 'OOO') {",
-                  "    pm.expect(c.inn).to.match(/^\\d{10}$/);",
-                  "    pm.expect(c.ogrn).to.match(/^\\d{13}$/);",
-                  "    pm.expect(c.kpp).to.match(/^\\d{4}[0-9A-Z]{2}\\d{3}$/);",
-                  "  } else {",
-                  "    pm.expect(c.inn).to.match(/^\\d{12}$/);",
-                  "    pm.expect(c.ogrn).to.match(/^\\d{15}$/);",
-                  "    pm.expect(c.kpp).to.be.null;",
-                  "  }",
-                  "});",
-                  "",
-                  "pm.test('AccountSummary: поля и типы', () => {",
-                  "  pm.expect(body.accounts).to.be.an('array').that.is.not.empty;",
-                  "  body.accounts.forEach((a) => {",
-                  "    pm.expect(a).to.have.all.keys('id', 'owner_type', 'type', 'currency', 'name', 'is_primary', 'current_money');",
-                  "    pm.expect(['company', 'user']).to.include(a.owner_type);",
-                  "    pm.expect(['settlement', 'current', 'deposit', 'credit']).to.include(a.type);",
-                  "    pm.expect(a.currency).to.match(/^[A-Z]{3}$/);",
-                  "    pm.expect(Number.isInteger(a.current_money)).to.be.true;",
-                  "  });",
-                  "});",
-                  "",
-                  "pm.test('Основные счета идут первыми', () => {",
-                  "  const flags = body.accounts.map((a) => a.is_primary);",
-                  "  pm.expect(flags).to.eql([...flags].sort((x, y) => y - x));",
-                  "});"
+                  "pm.test('Счета с суммами в копейках', () => body.accounts.forEach((a) => pm.expect(Number.isInteger(a.current_money.value)).to.be.true));"
                 ]
               }
             }
@@ -1082,17 +1111,12 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "",
+                  "pm.test('200', () => pm.response.to.have.status(200));",
                   "const body = pm.response.json();",
-                  "",
-                  "pm.test('role и company — null', () => {",
+                  "pm.test('role и company — null, прав нет', () => {",
                   "  pm.expect(body.role).to.be.null;",
                   "  pm.expect(body.company).to.be.null;",
-                  "});",
-                  "",
-                  "pm.test('Только личные счета', () => {",
-                  "  body.accounts.forEach((a) => pm.expect(a.owner_type).to.eql('user'));",
+                  "  pm.expect(body.permissions).to.eql([]);",
                   "});"
                 ]
               }
@@ -1146,8 +1170,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "// access_token остался от входа без роли в папке 7",
-                  "pm.test('403 Forbidden', () => pm.response.to.have.status(403));",
-                  "pm.test('detail: no access', () => pm.expect(pm.response.json().detail).to.eql('no access'));"
+                  "pm.test('403', () => pm.response.to.have.status(403));",
+                  "pm.test('error.code = NO_COMPANY_ROLE', () => pm.expect(pm.response.json().error.code).to.eql('NO_COMPANY_ROLE'));"
                 ]
               }
             }
@@ -1210,14 +1234,14 @@
                   "const body = pm.response.json();",
                   "",
                   "pm.test('Ответ: items, page, page_size, total', () => {",
-                  "  pm.expect(body).to.have.all.keys('items', 'page', 'page_size', 'total');",
+                  "  pm.expect(body).to.include.all.keys('items', 'page', 'page_size', 'total', 'counters');",
                   "});",
                   "",
                   "pm.test('Заявки: поля по контракту', () => {",
                   "  body.items.forEach((a) => {",
-                  "    pm.expect(a).to.have.all.keys(",
+                  "    pm.expect(a).to.include.all.keys(",
                   "      'id', 'number', 'product', 'purpose', 'requested_amount', 'requested_term_months',",
-                  "      'approved_amount', 'approved_term_months', 'status', 'required_action', 'created_at', 'updated_at');",
+                  "      'approved_amount', 'approved_term_months', 'status', 'required_action', 'awaiting_from', 'available_actions', 'created_at', 'updated_at');",
                   "    pm.expect(a.product).to.have.all.keys('code', 'name');",
                   "    pm.expect(a.requested_amount).to.have.all.keys('value', 'currency');",
                   "    pm.expect(Number.isInteger(a.requested_amount.value)).to.be.true;",
@@ -1274,14 +1298,14 @@
                   "const body = pm.response.json();",
                   "",
                   "pm.test('Ответ: items, page, page_size, total', () => {",
-                  "  pm.expect(body).to.have.all.keys('items', 'page', 'page_size', 'total');",
+                  "  pm.expect(body).to.include.all.keys('items', 'page', 'page_size', 'total', 'counters');",
                   "});",
                   "",
                   "pm.test('Заявки: поля по контракту', () => {",
                   "  body.items.forEach((a) => {",
-                  "    pm.expect(a).to.have.all.keys(",
+                  "    pm.expect(a).to.include.all.keys(",
                   "      'id', 'number', 'product', 'purpose', 'requested_amount', 'requested_term_months',",
-                  "      'approved_amount', 'approved_term_months', 'status', 'required_action', 'created_at', 'updated_at');",
+                  "      'approved_amount', 'approved_term_months', 'status', 'required_action', 'awaiting_from', 'available_actions', 'created_at', 'updated_at');",
                   "    pm.expect(a.product).to.have.all.keys('code', 'name');",
                   "    pm.expect(a.requested_amount).to.have.all.keys('value', 'currency');",
                   "    pm.expect(Number.isInteger(a.requested_amount.value)).to.be.true;",
@@ -1331,14 +1355,14 @@
                   "const body = pm.response.json();",
                   "",
                   "pm.test('Ответ: items, page, page_size, total', () => {",
-                  "  pm.expect(body).to.have.all.keys('items', 'page', 'page_size', 'total');",
+                  "  pm.expect(body).to.include.all.keys('items', 'page', 'page_size', 'total', 'counters');",
                   "});",
                   "",
                   "pm.test('Заявки: поля по контракту', () => {",
                   "  body.items.forEach((a) => {",
-                  "    pm.expect(a).to.have.all.keys(",
+                  "    pm.expect(a).to.include.all.keys(",
                   "      'id', 'number', 'product', 'purpose', 'requested_amount', 'requested_term_months',",
-                  "      'approved_amount', 'approved_term_months', 'status', 'required_action', 'created_at', 'updated_at');",
+                  "      'approved_amount', 'approved_term_months', 'status', 'required_action', 'awaiting_from', 'available_actions', 'created_at', 'updated_at');",
                   "    pm.expect(a.product).to.have.all.keys('code', 'name');",
                   "    pm.expect(a.requested_amount).to.have.all.keys('value', 'currency');",
                   "    pm.expect(Number.isInteger(a.requested_amount.value)).to.be.true;",
@@ -1420,6 +1444,2970 @@
             "method": "GET",
             "header": [],
             "url": "{{baseUrl}}/applications?page_size=101"
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Лента под клиента",
+      "description": "Одна и та же лента новостей для ООО «Машпромхоз» (производство) и ИП Орловой (общепит). Состав и причина показа зависят от формы бизнеса, ОКВЭД, сезонности и готовности.",
+      "item": [
+        {
+          "name": "Вход: Смирнов (собственник ООО)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('token_owner', pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{login}}\",\n  \"password\": \"{{demo_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Вход: Орлова (ИП)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('token_ip', pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{login_ip}}\",\n  \"password\": \"{{demo_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Вход: аналитик банка",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('token_analyst', pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{login_analyst}}\",\n  \"password\": \"{{demo_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Лента ООО «Машпромхоз»",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const items = pm.response.json().items;",
+                  "pm.collectionVariables.set('feed_ooo', JSON.stringify(items.map((i) => i.title)));",
+                  "pm.test('У каждой новости есть причина показа', () => items.forEach((i) => pm.expect(i.relevance_reason).to.be.a('string')));",
+                  "pm.test('Есть программа для производства', () => pm.expect(items.some((i) => i.title.includes('обрабатывающих'))).to.be.true);",
+                  "pm.test('Нет новостей только для ИП', () => pm.expect(items.some((i) => i.title.includes('ИП на патенте'))).to.be.false);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/feed?page_size=50",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Лента ИП Орловой",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const items = pm.response.json().items;",
+                  "pm.test('Есть совет для ИП', () => pm.expect(items.some((i) => i.title.includes('ИП на патенте'))).to.be.true);",
+                  "pm.test('Есть программа для общепита', () => pm.expect(items.some((i) => i.title.includes('общепит'))).to.be.true);",
+                  "pm.test('Нет программы для производства', () => pm.expect(items.some((i) => i.title.includes('обрабатывающих'))).to.be.false);",
+                  "const ooo = JSON.parse(pm.collectionVariables.get('feed_ooo'));",
+                  "pm.test('Ленты разные', () => pm.expect(items.map((i) => i.title)).to.not.eql(ooo));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/feed?page_size=50",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_ip}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. E2E: рекомендованные условия → авторешение",
+      "description": "Клиент берёт рекомендованные условия (keep_requested=false). Скоринг ≥ 70, предупреждений нет: банк одобряет автоматически.",
+      "item": [
+        {
+          "name": "Вход: Смирнов (собственник ООО)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('token_owner', pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{login}}\",\n  \"password\": \"{{demo_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Подбор: новая сессия",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('session_id', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/matching-sessions",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Подбор: потребность 2 000 000 ₽ на 24 мес",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/matching-sessions/{{session_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"step\": 2,\n  \"need\": {\n    \"purpose\": \"working_capital\",\n    \"amount\": {\n      \"value\": 200000000,\n      \"currency\": \"RUB\"\n    },\n    \"term_months\": 24,\n    \"need_type\": \"one_time\",\n    \"disbursement\": \"lump_sum\",\n    \"urgency\": \"week\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Подбор: финансы подтверждены",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/matching-sessions/{{session_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finance_confirmed\": true,\n  \"step\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Подбор: доп. сведения пропущены",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/matching-sessions/{{session_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"extra\": {\n    \"skipped\": true\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Подбор: рекомендация",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/matching-sessions/{{session_id}}/recommend",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Заявка из рекомендации",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "const b = pm.response.json();",
+                  "pm.test('Черновик', () => pm.expect(b.status).to.eql('draft'));",
+                  "pm.collectionVariables.set('app_id', b.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/applications",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source\": \"recommendation\",\n  \"matching_session_id\": \"{{session_id}}\",\n  \"keep_requested\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Что нужно для отправки",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}/requirements",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Согласие БКИ: код",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('demo_code в DEMO_MODE', () => pm.expect(b.demo_code).to.be.a('string'));",
+                  "pm.collectionVariables.set('challenge_id', b.challenge_id);",
+                  "pm.collectionVariables.set('demo_code', b.demo_code);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}/consents/consent_bki/challenge",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Согласие БКИ: подтверждение",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/applications/{{app_id}}/consents/consent_bki/confirm",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challenge_id\": \"{{challenge_id}}\",\n  \"code\": \"{{demo_code}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Отправка в банк",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('Статус submitted', () => pm.expect(pm.response.json().status).to.eql('submitted'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}/submit",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Заявка после автопроверок",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const tries = Number(pm.collectionVariables.get('poll') || 0);",
+                  "if (pm.response.json().status === 'submitted' && tries < 15) {",
+                  "  pm.collectionVariables.set('poll', tries + 1);",
+                  "  postman.setNextRequest(pm.info.requestId);",
+                  "} else {",
+                  "  pm.collectionVariables.set('poll', 0);",
+                  "  pm.test('200', () => pm.response.to.have.status(200));",
+                  "  pm.test('Статус approved', () => pm.expect(pm.response.json().status).to.eql('approved'));",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "setTimeout(() => {}, 1000);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Решение принято автоматически",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('decided_by = auto', () => pm.expect(pm.response.json().decision.decided_by).to.eql('auto'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Задача «принять предложение»",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('accept_offer', () => pm.expect(pm.response.json().some((t) => t.type === 'accept_offer')).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/tasks?scope=mine",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. E2E: запрос информации → ответ клиента",
+      "description": "Аналитик просит выписку. Клиент получает её из Альфа-Бизнеса (мок) без загрузки файла и отвечает. Заявка возвращается на рассмотрение.",
+      "item": [
+        {
+          "name": "Вход: Смирнов (собственник ООО)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('token_owner', pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{login}}\",\n  \"password\": \"{{demo_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Вход: аналитик банка",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('token_analyst', pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{login_analyst}}\",\n  \"password\": \"{{demo_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Подбор: новая сессия",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('session_id', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/matching-sessions",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Подбор: потребность 2 000 000 ₽ на 24 мес",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/matching-sessions/{{session_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"step\": 2,\n  \"need\": {\n    \"purpose\": \"working_capital\",\n    \"amount\": {\n      \"value\": 200000000,\n      \"currency\": \"RUB\"\n    },\n    \"term_months\": 24,\n    \"need_type\": \"one_time\",\n    \"disbursement\": \"lump_sum\",\n    \"urgency\": \"week\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Подбор: финансы подтверждены",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/matching-sessions/{{session_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finance_confirmed\": true,\n  \"step\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Подбор: доп. сведения пропущены",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/matching-sessions/{{session_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"extra\": {\n    \"skipped\": true\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Подбор: рекомендация",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/matching-sessions/{{session_id}}/recommend",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Заявка из рекомендации",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "const b = pm.response.json();",
+                  "pm.test('Черновик', () => pm.expect(b.status).to.eql('draft'));",
+                  "pm.collectionVariables.set('app_id', b.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/applications",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source\": \"recommendation\",\n  \"matching_session_id\": \"{{session_id}}\",\n  \"keep_requested\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Что нужно для отправки",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}/requirements",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Согласие БКИ: код",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('demo_code в DEMO_MODE', () => pm.expect(b.demo_code).to.be.a('string'));",
+                  "pm.collectionVariables.set('challenge_id', b.challenge_id);",
+                  "pm.collectionVariables.set('demo_code', b.demo_code);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}/consents/consent_bki/challenge",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Согласие БКИ: подтверждение",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/applications/{{app_id}}/consents/consent_bki/confirm",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challenge_id\": \"{{challenge_id}}\",\n  \"code\": \"{{demo_code}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Отправка в банк",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('Статус submitted', () => pm.expect(pm.response.json().status).to.eql('submitted'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}/submit",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Заявка после автопроверок",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const tries = Number(pm.collectionVariables.get('poll') || 0);",
+                  "if (pm.response.json().status === 'submitted' && tries < 15) {",
+                  "  pm.collectionVariables.set('poll', tries + 1);",
+                  "  postman.setNextRequest(pm.info.requestId);",
+                  "} else {",
+                  "  pm.collectionVariables.set('poll', 0);",
+                  "  pm.test('200', () => pm.response.to.have.status(200));",
+                  "  pm.test('Статус in_review', () => pm.expect(pm.response.json().status).to.eql('in_review'));",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "setTimeout(() => {}, 1000);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Аналитик берёт заявку",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('Есть скоринг', () => { pm.expect(b.scoring.total).to.be.a('number'); pm.expect(b.scoring.outcome).to.be.a('string'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/bank/applications/{{app_id}}/take",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_analyst}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Аналитик запрашивает выписку",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/bank/applications/{{app_id}}/decision",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"request_info\",\n  \"question\": \"Приложите выписку по счёту за последние 6 месяцев\",\n  \"requested_document_types\": [\n    \"bank_statement\"\n  ],\n  \"due_at\": \"2027-12-01T18:00:00+03:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_analyst}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Клиент видит запрос",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('Статус info_requested', () => pm.expect(pm.response.json().status).to.eql('info_requested'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Задача клиента по запросу",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const task = pm.response.json().find((t) => t.type === 'info_request' && t.cta.route.includes(pm.collectionVariables.get('app_id')));",
+                  "pm.test('Задача создана', () => pm.expect(task).to.be.an('object'));",
+                  "pm.collectionVariables.set('request_id', task.cta.route.split('/').pop());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/tasks?scope=mine",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Выписка из Альфа-Бизнеса",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('document_id', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/documents/from-lk",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"bank_statement\",\n  \"period_from\": \"2026-04-01\",\n  \"period_to\": \"2026-09-30\",\n  \"info_request_id\": \"{{request_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Ответ на запрос",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('Ответ принят', () => pm.expect(pm.response.json().status).to.eql('answered'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/applications/{{app_id}}/info-requests/{{request_id}}/respond",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"document_ids\": [\n    \"{{document_id}}\"\n  ],\n  \"comment\": \"Выписка за полгода\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Заявка снова у аналитика",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('Статус in_review', () => pm.expect(pm.response.json().status).to.eql('in_review'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "12. E2E: отказ с объяснением",
+      "item": [
+        {
+          "name": "Вход: Смирнов (собственник ООО)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('token_owner', pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{login}}\",\n  \"password\": \"{{demo_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Вход: аналитик банка",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('token_analyst', pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{login_analyst}}\",\n  \"password\": \"{{demo_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Подбор: новая сессия",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('session_id', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/matching-sessions",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Подбор: потребность 2 000 000 ₽ на 24 мес",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/matching-sessions/{{session_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"step\": 2,\n  \"need\": {\n    \"purpose\": \"working_capital\",\n    \"amount\": {\n      \"value\": 200000000,\n      \"currency\": \"RUB\"\n    },\n    \"term_months\": 24,\n    \"need_type\": \"one_time\",\n    \"disbursement\": \"lump_sum\",\n    \"urgency\": \"week\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Подбор: финансы подтверждены",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/matching-sessions/{{session_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finance_confirmed\": true,\n  \"step\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Подбор: доп. сведения пропущены",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/matching-sessions/{{session_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"extra\": {\n    \"skipped\": true\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Подбор: рекомендация",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/matching-sessions/{{session_id}}/recommend",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Заявка из рекомендации",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "const b = pm.response.json();",
+                  "pm.test('Черновик', () => pm.expect(b.status).to.eql('draft'));",
+                  "pm.collectionVariables.set('app_id', b.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/applications",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source\": \"recommendation\",\n  \"matching_session_id\": \"{{session_id}}\",\n  \"keep_requested\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Что нужно для отправки",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}/requirements",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Согласие БКИ: код",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('demo_code в DEMO_MODE', () => pm.expect(b.demo_code).to.be.a('string'));",
+                  "pm.collectionVariables.set('challenge_id', b.challenge_id);",
+                  "pm.collectionVariables.set('demo_code', b.demo_code);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}/consents/consent_bki/challenge",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Согласие БКИ: подтверждение",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/applications/{{app_id}}/consents/consent_bki/confirm",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challenge_id\": \"{{challenge_id}}\",\n  \"code\": \"{{demo_code}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Отправка в банк",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('Статус submitted', () => pm.expect(pm.response.json().status).to.eql('submitted'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}/submit",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Заявка после автопроверок",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const tries = Number(pm.collectionVariables.get('poll') || 0);",
+                  "if (pm.response.json().status === 'submitted' && tries < 15) {",
+                  "  pm.collectionVariables.set('poll', tries + 1);",
+                  "  postman.setNextRequest(pm.info.requestId);",
+                  "} else {",
+                  "  pm.collectionVariables.set('poll', 0);",
+                  "  pm.test('200', () => pm.response.to.have.status(200));",
+                  "  pm.test('Статус in_review', () => pm.expect(pm.response.json().status).to.eql('in_review'));",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "setTimeout(() => {}, 1000);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Аналитик берёт заявку",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('Есть скоринг', () => { pm.expect(b.scoring.total).to.be.a('number'); pm.expect(b.scoring.outcome).to.be.a('string'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/bank/applications/{{app_id}}/take",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_analyst}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Аналитик отказывает",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/bank/applications/{{app_id}}/decision",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"reject\",\n  \"reason_codes\": [\n    \"high_load\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_analyst}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Клиент видит объяснение и советы",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('Статус rejected', () => pm.expect(pm.response.json().status).to.eql('rejected'));",
+                  "const d = pm.response.json().decision;",
+                  "pm.test('Объяснение без слова «отказано»', () => pm.expect(d.explanation_text.toLowerCase()).to.not.include('отказано'));",
+                  "pm.test('Есть советы', () => pm.expect(d.improve_tips).to.not.be.empty);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "13. E2E: контрпредложение → подписание двумя подписантами → выдача",
+      "description": "Полный путь: подбор, заявка, согласие, отправка, скоринг, контрпредложение аналитика, принятие, подписание по правилам компании (договор Смирнов, поручительство Петров), выдача кредита и график. Выдача меняет долговую нагрузку компании, поэтому папка идёт последней.",
+      "item": [
+        {
+          "name": "Вход: Смирнов (собственник ООО)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('token_owner', pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{login}}\",\n  \"password\": \"{{demo_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Вход: Петров (второй собственник)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('token_petrov', pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{login_petrov}}\",\n  \"password\": \"{{demo_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Вход: аналитик банка",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('token_analyst', pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{login_analyst}}\",\n  \"password\": \"{{demo_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Подбор: новая сессия",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('session_id', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/matching-sessions",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Подбор: потребность 2 000 000 ₽ на 24 мес",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/matching-sessions/{{session_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"step\": 2,\n  \"need\": {\n    \"purpose\": \"working_capital\",\n    \"amount\": {\n      \"value\": 200000000,\n      \"currency\": \"RUB\"\n    },\n    \"term_months\": 24,\n    \"need_type\": \"one_time\",\n    \"disbursement\": \"lump_sum\",\n    \"urgency\": \"week\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Подбор: финансы подтверждены",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/matching-sessions/{{session_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finance_confirmed\": true,\n  \"step\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Подбор: доп. сведения пропущены",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/matching-sessions/{{session_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"extra\": {\n    \"skipped\": true\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Подбор: рекомендация",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/matching-sessions/{{session_id}}/recommend",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Заявка из рекомендации",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "const b = pm.response.json();",
+                  "pm.test('Черновик', () => pm.expect(b.status).to.eql('draft'));",
+                  "pm.collectionVariables.set('app_id', b.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/applications",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source\": \"recommendation\",\n  \"matching_session_id\": \"{{session_id}}\",\n  \"keep_requested\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Что нужно для отправки",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}/requirements",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Согласие БКИ: код",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('demo_code в DEMO_MODE', () => pm.expect(b.demo_code).to.be.a('string'));",
+                  "pm.collectionVariables.set('challenge_id', b.challenge_id);",
+                  "pm.collectionVariables.set('demo_code', b.demo_code);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}/consents/consent_bki/challenge",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Согласие БКИ: подтверждение",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/applications/{{app_id}}/consents/consent_bki/confirm",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challenge_id\": \"{{challenge_id}}\",\n  \"code\": \"{{demo_code}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Отправка в банк",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('Статус submitted', () => pm.expect(pm.response.json().status).to.eql('submitted'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}/submit",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Заявка после автопроверок",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const tries = Number(pm.collectionVariables.get('poll') || 0);",
+                  "if (pm.response.json().status === 'submitted' && tries < 15) {",
+                  "  pm.collectionVariables.set('poll', tries + 1);",
+                  "  postman.setNextRequest(pm.info.requestId);",
+                  "} else {",
+                  "  pm.collectionVariables.set('poll', 0);",
+                  "  pm.test('200', () => pm.response.to.have.status(200));",
+                  "  pm.test('Статус in_review', () => pm.expect(pm.response.json().status).to.eql('in_review'));",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "setTimeout(() => {}, 1000);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Аналитик берёт заявку",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('Есть скоринг', () => { pm.expect(b.scoring.total).to.be.a('number'); pm.expect(b.scoring.outcome).to.be.a('string'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/bank/applications/{{app_id}}/take",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_analyst}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Варианты контрпредложения",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/bank/applications/{{app_id}}/counter-offer-options",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_analyst}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Аналитик: 1 500 000 ₽ на 36 мес",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/bank/applications/{{app_id}}/decision",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"counter_offer\",\n  \"amount\": {\n    \"value\": 150000000,\n    \"currency\": \"RUB\"\n  },\n  \"term_months\": 36,\n  \"rate_percent\": 15,\n  \"reason_code\": \"high_load\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_analyst}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Клиент видит контрпредложение",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('Статус counter_offer', () => pm.expect(pm.response.json().status).to.eql('counter_offer'));",
+                  "const b = pm.response.json();",
+                  "pm.test('Можно принять или отказаться', () => pm.expect(b.available_actions).to.include.members(['offer.accept', 'offer.decline']));",
+                  "pm.test('Платёж посчитан', () => pm.expect(b.decision.offered.monthly_payment.value).to.be.above(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Клиент принимает",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('Статус signing', () => pm.expect(pm.response.json().status).to.eql('signing'));",
+                  "pm.test('Два подписанта', () => pm.expect(pm.response.json().signing.required_count).to.eql(2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}/offer/accept",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Подпись (Смирнов, договор): код",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.collectionVariables.set('challenge_id', b.challenge_id);",
+                  "pm.collectionVariables.set('demo_code', b.demo_code);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}/signing/challenge",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Подпись (Смирнов, договор): подтверждение",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/applications/{{app_id}}/signing/confirm",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challenge_id\": \"{{challenge_id}}\",\n  \"code\": \"{{demo_code}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Подпись (Петров, поручительство): код",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.collectionVariables.set('challenge_id', b.challenge_id);",
+                  "pm.collectionVariables.set('demo_code', b.demo_code);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}/signing/challenge",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_petrov}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Подпись (Петров, поручительство): подтверждение",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/applications/{{app_id}}/signing/confirm",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challenge_id\": \"{{challenge_id}}\",\n  \"code\": \"{{demo_code}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_petrov}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Кредит выдан",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('Статус issued', () => pm.expect(pm.response.json().status).to.eql('issued'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/applications/{{app_id}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Кредит и график платежей",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const loan = pm.response.json().find((l) => l.application_id === pm.collectionVariables.get('app_id'));",
+                  "pm.test('Кредит создан на условиях контрпредложения', () => { pm.expect(loan.amount.value).to.eql(150000000); pm.expect(loan.term_months).to.eql(36); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/loans",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_owner}}",
+                  "type": "string"
+                }
+              ]
+            }
           }
         }
       ]

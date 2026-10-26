@@ -10,4 +10,4 @@ redis==5.2.1
 python-multipart==0.0.20
 PyYAML==6.0.2
 pypdf==5.4.0
-httpx
+httpx==0.28.1
