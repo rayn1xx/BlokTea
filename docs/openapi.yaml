@@ -6129,11 +6129,17 @@ components:
           - any_purpose
           - gov_program
           title: Product Code
+        product_name:
+          type: string
+          title: Product Name
         amount:
           $ref: '#/components/schemas/Money'
         term_months:
           type: integer
           title: Term Months
+        rate_percent:
+          type: number
+          title: Rate Percent
         monthly_payment:
           $ref: '#/components/schemas/Money'
         load:
@@ -6144,8 +6150,10 @@ components:
       type: object
       required:
       - product_code
+      - product_name
       - amount
       - term_months
+      - rate_percent
       - monthly_payment
       - load
       - score

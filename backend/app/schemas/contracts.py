@@ -1024,8 +1024,10 @@ class BankApplicationDetail(ApplicationDetail):
 
 class CounterOfferOption(BaseModel):
     product_code: ProductCode
+    product_name: str
     amount: Money
     term_months: int
+    rate_percent: float
     monthly_payment: Money
     load: LoadCalc
     score: int

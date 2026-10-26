@@ -11,7 +11,7 @@ import type { BankApplicationDetail, BankDecisionRequest } from '@/features/bank
 import { documentsApi } from '@/features/documents/api';
 import { errorText, fieldErrors, queryClient } from '@/shared/api/query';
 import { formatMoney, formatPercent } from '@/shared/lib/format';
-import type { Money } from '@/shared/types/common';
+import type { Money, ProductCode } from '@/shared/types/common';
 import { Btn, Card, Chips, DateField, FieldGroup, FieldLabel, FieldTag, Grid, InfoRow, InfoRows, MoneyInput, Note, NumberInput, Options, PageHead, QueryGate, SkeletonLines, Split, Stack, Text, ToneLabel } from '@/shared/ui';
 
 type Kind = 'approve' | 'counter_offer' | 'request_info' | 'reject';
@@ -29,6 +29,7 @@ function DecisionForm({ app }: { app: BankApplicationDetail }) {
   const [amount, setAmount] = useState<Money | null>(app.requested_amount);
   const [term, setTerm] = useState<number | null>(app.requested_term_months);
   const [rate, setRate] = useState<number | null>(app.rate_percent);
+  const [product, setProduct] = useState<ProductCode>(app.product.code);
   const [reason, setReason] = useState<string | null>(null);
   const [template, setTemplate] = useState<string | null>(null);
   const [question, setQuestion] = useState('');
@@ -46,13 +47,13 @@ function DecisionForm({ app }: { app: BankApplicationDetail }) {
     if (kind === 'approve') return { type: 'approve', comment: comment || undefined };
     if (kind === 'counter_offer') {
       if (!amount?.value || !term || !rate) return null;
-      return { type: 'counter_offer', amount, term_months: term, rate_percent: rate, reason_code: reason ?? '', comment: comment || undefined };
+      return { type: 'counter_offer', amount, term_months: term, product_code: product, rate_percent: rate, reason_code: reason ?? '', comment: comment || undefined };
     }
     if (kind === 'request_info') {
       return { type: 'request_info', template_code: template ?? undefined, question, requested_document_types: docTypes, due_at: dueAt ? `${dueAt}T18:00:00+03:00` : '' };
     }
     return { type: 'reject', reason_codes: reasons, comment: comment || undefined };
-  }, [kind, comment, amount, term, rate, reason, template, question, docTypes, dueAt, reasons]);
+  }, [kind, comment, amount, term, product, rate, reason, template, question, docTypes, dueAt, reasons]);
 
   const [debounced, setDebounced] = useState(body);
   useEffect(() => {
@@ -166,10 +167,11 @@ function DecisionForm({ app }: { app: BankApplicationDetail }) {
                         columns={3}
                         radio
                         options={(options.data?.options ?? []).map((o) => ({
-                          value: `${o.amount.value}-${o.term_months}`,
+                          value: `${o.product_code}-${o.amount.value}-${o.term_months}`,
                           label: `${formatMoney(o.amount)} на ${o.term_months} мес.`,
                           description: (
                             <>
+                              {o.product_name}, {formatPercent(o.rate_percent)} · {' '}
                               платёж {formatMoney(o.monthly_payment)}{' '}
                               <ToneLabel tone={o.load.load_percent <= o.load.target_percent ? 'positive' : o.load.load_percent <= o.load.threshold_percent ? 'attention' : 'negative'} small>
                                 нагрузка {formatPercent(o.load.load_percent)}
@@ -177,12 +179,14 @@ function DecisionForm({ app }: { app: BankApplicationDetail }) {
                             </>
                           ),
                         }))}
-                        value={amount && term ? `${amount.value}-${term}` : null}
+                        value={amount && term ? `${product}-${amount.value}-${term}` : null}
                         onChange={(v) => {
-                          const o = options.data?.options.find((x) => `${x.amount.value}-${x.term_months}` === v);
+                          const o = options.data?.options.find((x) => `${x.product_code}-${x.amount.value}-${x.term_months}` === v);
                           if (!o) return;
+                          setProduct(o.product_code);
                           setAmount(o.amount);
                           setTerm(o.term_months);
+                          setRate(o.rate_percent);
                         }}
                         />
                     )}
