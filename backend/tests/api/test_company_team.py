@@ -40,10 +40,17 @@ class TestFinance:
         assert body["debts"]["total_monthly_payment"]["value"] == 12_840_000
         assert body["confirmed_at"] is not None
 
-    async def test_financing_employee_cannot_edit(self, client: AsyncClient, demo: None) -> None:
-        response = await client.patch(f"{API}/company/finance-summary", headers=auth(U_LES), json={"confirm": True})
+    async def test_financing_employee_confirms_but_cannot_edit(self, client: AsyncClient, demo: None) -> None:
+        confirm = await client.patch(f"{API}/company/finance-summary", headers=auth(U_LES), json={"confirm": True})
+        edit = await client.patch(
+            f"{API}/company/finance-summary",
+            headers=auth(U_LES),
+            json={"monthly_inflow_avg": {"value": 1, "currency": "RUB"}, "confirm": True},
+        )
 
-        assert response.status_code == 403
+        assert confirm.status_code == 200
+        assert confirm.json()["confirmed_at"] is not None
+        assert edit.status_code == 403
 
     async def test_alfa_unavailable(self, client: AsyncClient, demo: None, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("MOCKS_DOWN", "alfa_lk")

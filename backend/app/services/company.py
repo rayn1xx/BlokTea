@@ -125,7 +125,11 @@ class CompanyService:
         return await self.data(ctx).finance_summary()
 
     async def patch_finance(self, ctx: ClientContext, body: dict) -> dict:
-        ctx.require_role(EDIT_ROLES, "Финансовые данные меняют собственник, директор или бухгалтер")
+        edits = body.get("debts_add") or any(
+            body.get(f) is not None for f in ("monthly_inflow_avg", "monthly_operating_outflow_avg")
+        )
+        if edits or not ctx.has("submit_applications"):
+            ctx.require_role(EDIT_ROLES, "Финансовые данные меняют собственник, директор или бухгалтер")
         data = self.data(ctx)
         for field in ("monthly_inflow_avg", "monthly_operating_outflow_avg"):
             if body.get(field) is not None:
